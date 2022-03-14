@@ -14,6 +14,7 @@
 
 from discord.ext import commands #Imports required Modules
 import discord, datetime, time, psutil, requests
+#from mcstatus import MinecraftServer
 
 
 intents = discord.Intents.all()
@@ -24,7 +25,7 @@ client = commands.Bot(command_prefix="+", intents=intents, help_command=None) #S
 @client.event
 async def on_ready():
     print("Connected to Discord!")
-    await client.change_presence(activity=discord.Game('on the Shenanigans Network')) #Set Presence
+    await client.change_presence(activity=discord.Game(f'on the Shenanigans Network')) #Set Presence
 
     #Global Variables
     global startTime        #Set bot start time for the `Stats` Uptime monitor
@@ -39,11 +40,19 @@ async def on_ready():
     global embed_header
     embed_header = "Shenanigans Network"
 
+    #global server_name
+    #server_name = "Shenanigans Network"
+
+
 
 
 
 async def serverstatus(message, st_server):
     placeholder = await status(st_server)  # Gets server info from API
+    #server = MinecraftServer.lookup(f"{st_ip}")
+    #query = server.query()
+    #online_player = ', '.join(query.players.names)
+    #print(f"The server has the following players online: {online_player}")
     serverstatus = placeholder["state"]
     if serverstatus == "offline":  # Adds emoji for up/down/starting/stopping
         serverstatus = "Offline <:offline:915916197797715979> "
@@ -54,7 +63,7 @@ async def serverstatus(message, st_server):
     elif serverstatus == "stopping":
         serverstatus = "Stopping <:outage:915916198032588800>"
     # The embed for this server
-    serverembed = discord.Embed(title=f"{st_server.capitalize()} Status", url="https://moonball.io", description=f"Live Status for the {st_server.capitalize()} Server. Triggered by {message.author.name}#{message.author.discriminator}", color=embed_color)
+    serverembed = discord.Embed(title=f"{st_server.capitalize()} Status", url="https://moonball.io", description=f"Live Status for the {st_server.capitalize()} Server. \nTriggered by {message.author.name}#{message.author.discriminator}", color=embed_color)
     serverembed.set_author(name=embed_header)
     serverembed.set_thumbnail(url="https://media.discordapp.net/attachments/880368661104316459/950775364928561162/logo.png")
     serverembed.add_field(name="<:load_bot:952580881367826542> Status", value=f'{serverstatus}', inline=True)
@@ -66,6 +75,24 @@ async def serverstatus(message, st_server):
     await message.reply(embed = serverembed)  # Sends the embed
     print(f'Server Status : Sent Server {st_server.capitalize()} embed to message of {message.author.name}#{message.author.discriminator}')  # Logs to Console
 
+
+@client.event
+async def on_member_join(member):
+    guild = client.get_guild(894902529039687720)  # Replace "894902529039687720" with your server ID (Server Settings > Widget > Copy Server ID)
+    channel = guild.get_channel(938483925498605639)  # Replace "938483925498605639" with your Welcome-Announcements channel's Channel-ID
+
+    # embed
+    print("Recieved test thing")
+
+    embed = discord.Embed(title=f'Welcome to the Discord Server!', url="https://moonball.io", color=embed_color)
+    embed.add_field(name="Shenanigans Network", value=f"<a:malconfetti:910127223791554570> Welcome {member.mention} to the Discord! <a:malconfetti:910127223791554570>\n<a:Read_Rules:910128684751544330> Please check out the Server Rules here <#894902529039687722> <a:Read_Rules:910128684751544330>\n <a:hypelove:901476784204288070> Take your Self Roles at <#910130264905232424> <a:hypelove:901476784204288070>\n <:02cool:910128856550244352> Head over to ⛧╭･ﾟgeneral-eng to talk with others! <:02cool:910128856550244352> \n<a:Hearts:952919562846875650> Server info and IP can be found here <#897502089025052693> <a:Hearts:952919562846875650>", inline=True)
+    embed.set_image(url="https://media.discordapp.net/attachments/896348336972496936/952940944175554590/ezgif-1-e6eb713fa2.gif")
+    embed.set_footer(text=embed_footer)
+    await channel.send(embed=embed)
+
+    role = discord.utils.get(member.server.roles, name="Member") #  Gets the member role as a `role` object
+    await client.add_roles(member, role) # Gives the role to the user
+    print(f"Sent Welcome Embed and Member Role to {member.name}")
 
 
 
@@ -89,38 +116,69 @@ async def on_message(message):
             print(f'Sent IP Embed to message of {message.author.name}#{message.author.discriminator}')
 
 
-        #Send server status embeds
-        elif " survival " in f" {message.content} " and " down " in f" {message.content} ":    #Sends server info for survival
+        #Check Messages for [servername] and "Down"
+        elif " survival " in f" {message.content} " and "down" in f" {message.content} ":    #Sends server info for survival
             st_server = "survival"  # Put the name for the server here (non-capitalised)
             await serverstatus(message, st_server)
 
-        elif " skyblock " in f" {message.content} " and " down " in f" {message.content} ":    #Sends server info for Skyblock
+        elif " skyblock " in f" {message.content} " and "down" in f" {message.content} ":    #Sends server info for Skyblock
             st_server = "skyblock"  # Put the name for the server here (non-capitalised)
             await serverstatus(message, st_server)
 
-        elif " duels " in f" {message.content} " and " down " in f" {message.content} ":       #Sends server info for Duels
+        elif " duels " in f" {message.content} " and "down" in f" {message.content} ":       #Sends server info for Duels
             st_server = "duels"  # Put the name for the server here (non-capitalised)
             await serverstatus(message, st_server)
 
-        elif " bedwars " in f" {message.content} " and " down " in f" {message.content} ":     #Sends server info for Bedwars
+        elif " bedwars " in f" {message.content} " and "down" in f" {message.content} ":     #Sends server info for Bedwars
             st_server = "bedwars"  # Put the name for the server here (non-capitalised)
             await serverstatus(message, st_server)
 
-        elif " auth " in f" {message.content} " and " down " in f" {message.content} ":        #Sends server info for Auth
+        elif " auth " in f" {message.content} " and "down" in f" {message.content} ":        #Sends server info for Auth
             st_server = "auth"  # Put the name for the server here (non-capitalised)
             await serverstatus(message, st_server)
 
-        elif " proxy " in f" {message.content} " and " down " in f" {message.content} ":       #Sends server info for Proxy
+        elif " proxy " in f" {message.content} " and "down" in f" {message.content} ":       #Sends server info for Proxy
             st_server = "proxy"  # Put the name for the server here (non-capitalised)
             await serverstatus(message, st_server)
 
-        elif " lobby " in f" {message.content} " and " down " in f" {message.content} ":       #Sends server info for Lobby
+        elif " lobby " in f" {message.content} " and "down" in f" {message.content} ":       #Sends server info for Lobby
             st_server = "lobby"  # Put the name for the server here (non-capitalised)
             await serverstatus(message, st_server)
 
 
+        #Check messages for [servername] and "Up"
 
-    await client.process_commands(message)
+        elif " survival " in f" {message.content} " and "up" in f" {message.content} ":    #Sends server info for survival
+            st_server = "survival"  # Put the name for the server here (non-capitalised)
+            await serverstatus(message, st_server)
+
+        elif " skyblock " in f" {message.content} " and "up" in f" {message.content} ":    #Sends server info for Skyblock
+            st_server = "skyblock"  # Put the name for the server here (non-capitalised)
+            await serverstatus(message, st_server)
+
+        elif " duels " in f" {message.content} " and "up" in f" {message.content} ":       #Sends server info for Duels
+            st_server = "duels"  # Put the name for the server here (non-capitalised)
+            await serverstatus(message, st_server)
+
+        elif " bedwars " in f" {message.content} " and "up" in f" {message.content} ":     #Sends server info for Bedwars
+            st_server = "bedwars"  # Put the name for the server here (non-capitalised)
+            await serverstatus(message, st_server)
+
+        elif " auth " in f" {message.content} " and "up" in f" {message.content} ":        #Sends server info for Auth
+            st_server = "auth"  # Put the name for the server here (non-capitalised)
+            await serverstatus(message, st_server)
+
+        elif " proxy " in f" {message.content} " and "up" in f" {message.content} ":       #Sends server info for Proxy
+            st_server = "proxy"  # Put the name for the server here (non-capitalised)
+            await serverstatus(message, st_server)
+
+        elif " lobby " in f" {message.content} " and "up" in f" {message.content} ":       #Sends server info for Lobby
+            st_server = "lobby"  # Put the name for the server here (non-capitalised)
+            await serverstatus(message, st_server)
+        await client.process_commands(message)
+
+
+
     #Bot Stats Command
 @client.command(aliases=['memory', 'mem', 'cpu', 'ram', 'lag'])
 async def stats(message):
@@ -142,7 +200,7 @@ async def stats(message):
     stats.add_field(name = '<:cpu_bot:951055641395478568> CPU Usage', value = f'{psutil.cpu_percent()}%', inline = False)
     stats.add_field(name = '<:ram_bot:951055641332563988> Memory Usage', value = f'{placeholder["memUsage"]}', inline = False)
     #stats.add_field(name = '<:shard_bot:951055641697456128> Available Memory', value = f'{availablemem}%', inline = False)
-    stats.add_field(name = '<:uptime_bot:951055640967675945> Uptime', value=f'`{uptime}`', inline=False)
+    stats.add_field(name = '<:uptime_bot:951055640967675945> Uptime', value=f'{uptime}', inline=False)
     stats.set_footer(text=embed_footer)
     await message.reply(embed = stats)
     print(f'Sent bot Stats to message of {message.author.name}#{message.author.discriminator}')  # Logs to Console
@@ -183,6 +241,7 @@ async def embed(ctx, *data):
 @client.command(aliases=['survival'])
 async def statussurvival(message):
     st_server = "survival"  # Put the name for the server here (non-capitalised)
+    #st_ip = "37.208.189.220:25565"  # Put the IP for the Server here
     await serverstatus(message, st_server)
 
 @client.command(aliases=['skyblock'])
@@ -218,8 +277,6 @@ async def statusproxy(message):
 
 
 
-
-
 #
 # Server Status BACKEND
 #
@@ -232,9 +289,9 @@ def form_dict(stats):
     placeholders = {}
     ph_keys = ["state", "memUsage", "cpuUsage", "spaceOccupied", "uptime"]
     ph_values = [stats["attributes"]["current_state"],
-                 str(round(stats["attributes"]["resources"]["memory_bytes"] / 1000000000, 2)) + " GB",
+                 str(round(stats["attributes"]["resources"]["memory_bytes"] / 1073741824, 2)) + " GB",
                  str(round(stats["attributes"]["resources"]["cpu_absolute"], 2)),
-                 str(round(stats["attributes"]["resources"]["disk_bytes"] / 1000000000, 2)) + " GB",
+                 str(round(stats["attributes"]["resources"]["disk_bytes"] / 1073741824, 2)) + " GB",
                  str(round(stats["attributes"]["resources"]["uptime"] / 3600000, 2)) + " hour(s)"]
 
 
@@ -247,7 +304,7 @@ async def status(servername):
     server_guide = {'fe5a4fe1': 'proxy', 'e91b165c': 'auth', 'd0f6701c': 'lobby', '5d0ac930': 'survival',
                     '3a0eaf97': 'skyblock', '6e5ed2ac': 'duels', 'edeeff53': 'bedwars', '5426b68e': 'bot'}
     headers = {
-        "Authorization": "Bearer apitoken",
+        "Authorization": "Bearer apikey",
         "Accept": "application/json",
         "Content-Type": "application/json"
     }
@@ -284,4 +341,4 @@ async def server_status():
 
 
 
-client.run('token_here')
+client.run('bottoken')
