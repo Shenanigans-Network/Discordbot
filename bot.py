@@ -27,10 +27,6 @@ async def on_ready():
     print("Connected to Discord!")
     await client.change_presence(activity=discord.Game(f'on the Shenanigans Network')) #Set Presence
 
-    #Global Variables
-    #global startTime        #Set bot start time for the `Stats` Uptime monitor
-    #startTime = time.time()
-
     global embed_footer     #Sets the default Embed footer
     embed_footer = "Made with Love ♥ Shenanigans Bot"
 
@@ -40,9 +36,17 @@ async def on_ready():
     global embed_header
     embed_header = "Shenanigans Network"
 
-    #global server_name
-    #server_name = "Shenanigans Network"
+    global general_channel
+    general_channel = 953482572850139136 # Put your welcome announcements channel id (for us, that's general)
 
+    global suggestion_channel
+    suggestion_channel = 950720150032752680 # Put your suggestions channel's channel ID here
+
+    global prefix
+    prefix = "+"
+
+    global bot_version
+    bot_version = "Beta 0.3"
 
 
 
@@ -80,24 +84,6 @@ async def serverstatus(message, st_server,st_ip):
     print(f'Server Status : Sent Server {st_server.capitalize()} embed to message of {message.author.name}#{message.author.discriminator}')  # Logs to Console
 
 
-@client.event
-async def on_member_join(member):
-    guild = client.get_guild(894902529039687720)  # Replace "894902529039687720" with your server ID (Server Settings > Widget > Copy Server ID)
-    channel = guild.get_channel(938483925498605639)  # Replace "938483925498605639" with your Welcome-Announcements channel's Channel-ID
-
-    # embed
-
-    embed = discord.Embed(title=f'Welcome to the Discord Server!', url="https://moonball.io", color=embed_color)
-    embed.add_field(name="Shenanigans Network", value=f"<a:malconfetti:910127223791554570> Welcome {member.mention} to the Discord! <a:malconfetti:910127223791554570>\n<a:Read_Rules:910128684751544330> Please check out the Server Rules here <#894902529039687722> <a:Read_Rules:910128684751544330>\n <a:hypelove:901476784204288070> Take your Self Roles at <#910130264905232424> <a:hypelove:901476784204288070>\n <:02cool:910128856550244352> Head over to ⛧╭･ﾟgeneral-eng to talk with others! <:02cool:910128856550244352> \n<a:Hearts:952919562846875650> Server info and IP can be found here <#897502089025052693> <a:Hearts:952919562846875650>", inline=True)
-    embed.set_image(url="https://media.discordapp.net/attachments/896348336972496936/952940944175554590/ezgif-1-e6eb713fa2.gif")
-    embed.set_footer(text=embed_footer)
-    await channel.send(embed=embed)
-
-    role = discord.utils.get(member.server.roles, name="Member") #  Gets the member role as a `role` object
-    await client.add_roles(member, role) # Gives the role to the user
-    print(f"Sent Welcome Embed and Member Role to {member.name}")
-
-
 
 #look for in message
 @client.event
@@ -108,7 +94,7 @@ async def on_message(message):
     else:
         #On word "ip" send the IP embed
         if " ip " in f" {message.content} ":
-            # Sends main IP embed
+            # Sends IP embed
             ipembed = discord.Embed(title="Here's the Server ip!", url="https://moonball.io", color=embed_color)
             ipembed.set_author(name=embed_header)
             ipembed.set_thumbnail(url="https://media.discordapp.net/attachments/880368661104316459/950775364928561162/logo.png")
@@ -118,97 +104,245 @@ async def on_message(message):
             await message.reply(embed = ipembed)
             print(f'Sent IP Embed to message of {message.author.name}#{message.author.discriminator}')
 
+        elif client.user.mention in message.content.split():
+            await message.reply(f"Hello! THe prefix is `{prefix}`. Use `{prefix}help` to view available commands.")
+            print(f"Sent Mention message to {message.author.name}#{message.author.discriminator}")
 
         #Check Messages for [servername] and "Down"
         elif " survival " in f" {message.content} " and "down" in f" {message.content} ":    #Sends server info for survival
             st_server = "survival"  # Put the name for the server here (non-capitalised)
             st_ip = "192.168.100.80:25575"  # Put the IP for the Server here
             await serverstatus(message, st_server, st_ip)
-
         elif " skyblock " in f" {message.content} " and "down" in f" {message.content} ":    #Sends server info for Skyblock
             st_server = "skyblock"  # Put the name for the server here (non-capitalised)
             st_ip = "192.168.100.70:25572"  # Put the IP for the Server here
             await serverstatus(message, st_server, st_ip)
-
         elif " duels " in f" {message.content} " and "down" in f" {message.content} ":       #Sends server info for Duels
             st_server = "duels"  # Put the name for the server here (non-capitalised)
             st_ip = "192.168.100.70:25573"  # Put the IP for the Server here
             await serverstatus(message, st_server, st_ip)
-
         elif " bedwars " in f" {message.content} " and "down" in f" {message.content} ":     #Sends server info for Bedwars
             st_server = "bedwars"  # Put the name for the server here (non-capitalised)
             st_ip = "192.168.100.70:25571"  # Put the IP for the Server here
             await serverstatus(message, st_server, st_ip)
-
         elif " auth " in f" {message.content} " and "down" in f" {message.content} ":        #Sends server info for Auth
             st_server = "auth"  # Put the name for the server here (non-capitalised)
             st_ip = "192.168.100.70:25578"  # Put the IP for the Server here
             await serverstatus(message, st_server, st_ip)
-
         elif " proxy " in f" {message.content} " and "down" in f" {message.content} ":       #Sends server info for Proxy
             st_server = "proxy"  # Put the name for the server here (non-capitalised)
             st_ip = "192.168.100.60:25565"  # Put the IP for the Server here
             await serverstatus(message, st_server, st_ip)
-
         elif " lobby " in f" {message.content} " and "down" in f" {message.content} ":       #Sends server info for Lobby
             st_server = "lobby"  # Put the name for the server here (non-capitalised)
             st_ip = "192.168.100.70:25577"  # Put the IP for the Server here
             await serverstatus(message, st_server, st_ip)
-
-
         #Check messages for [servername] and "Up"
-
         elif " survival " in f" {message.content} " and "up" in f" {message.content} ":    #Sends server info for survival
             st_server = "survival"  # Put the name for the server here (non-capitalised)
             st_ip = "192.168.100.80:25575"  # Put the IP for the Server here
             await serverstatus(message, st_server, st_ip)
-
         elif " skyblock " in f" {message.content} " and "up" in f" {message.content} ":    #Sends server info for Skyblock
             st_server = "skyblock"  # Put the name for the server here (non-capitalised)
             st_ip = "192.168.100.70:25572"  # Put the IP for the Server here
             await serverstatus(message, st_server, st_ip)
-
         elif " duels " in f" {message.content} " and "up" in f" {message.content} ":       #Sends server info for Duels
             st_server = "duels"  # Put the name for the server here (non-capitalised)
             st_ip = "192.168.100.70:25573"  # Put the IP for the Server here
             await serverstatus(message, st_server, st_ip)
-
         elif " bedwars " in f" {message.content} " and "up" in f" {message.content} ":     #Sends server info for Bedwars
             st_server = "bedwars"  # Put the name for the server here (non-capitalised)
             st_ip = "192.168.100.70:25571"  # Put the IP for the Server here
             await serverstatus(message, st_server, st_ip)
-
         elif " auth " in f" {message.content} " and "up" in f" {message.content} ":        #Sends server info for Auth
             st_server = "auth"  # Put the name for the server here (non-capitalised)
             st_ip = "192.168.100.70:25578"  # Put the IP for the Server here
             await serverstatus(message, st_server, st_ip)
-
         elif " proxy " in f" {message.content} " and "up" in f" {message.content} ":       #Sends server info for Proxy
             st_server = "proxy"  # Put the name for the server here (non-capitalised)
             st_ip = "192.168.100.60:25565"  # Put the IP for the Server here
             await serverstatus(message, st_server, st_ip)
-
         elif " lobby " in f" {message.content} " and "up" in f" {message.content} ":       #Sends server info for Lobby
             st_server = "lobby"  # Put the name for the server here (non-capitalised)
             st_ip = "192.168.100.70:25577"  # Put the IP for the Server here
             await serverstatus(message, st_server, st_ip)
 
+
+        elif ".suggest" in f" {message.content} ":
+            await message.reply("Please use `+suggest` from now on, instead!")
+
+
         await client.process_commands(message)
 
+#Stuff to do where a user gives an Invalid Command
+@client.event
+async def on_command_error(ctx, error):
+    if not isinstance(error, commands.CheckFailure):
+        #await ctx.message.add_reaction(':false:508021839981707304')
+        await ctx.reply("Invalid Command! Do `+help` to view available commands.")
+        print(f"Sent Invalid-Command message to {ctx.author.name}#{ctx.author.discriminator}")
+
+
+# Welcome Announcement
+@client.event
+async def on_member_join(member):
+    guild = client.get_guild(894902529039687720)  # Replace "894902529039687720" with your server ID (Server Settings > Widget > Copy Server ID)
+    channel = guild.get_channel(general_channel)  # To change this, Go on top of this file
+        #Embed
+    welc_embed = discord.Embed(title=f'Welcome to the Discord Server!', url="https://moonball.io", color=embed_color)
+    welc_embed.add_field(name="Shenanigans Network",value=f"<a:malconfetti:910127223791554570> Welcome {member.mention} to the Discord! <a:malconfetti:910127223791554570>\n<a:Read_Rules:910128684751544330> Please check out the Server Rules here <#894902529039687722> <a:Read_Rules:910128684751544330>\n <a:hypelove:901476784204288070> Take your Self Roles at <#910130264905232424> <a:hypelove:901476784204288070>\n <:02cool:910128856550244352> Head over to ⛧╭･ﾟgeneral-eng to talk with others! <:02cool:910128856550244352> \n<a:Hearts:952919562846875650> Server info and IP can be found here <#897502089025052693> <a:Hearts:952919562846875650>",inline=True)
+    welc_embed.set_image(url="https://media.discordapp.net/attachments/896348336972496936/952940944175554590/ezgif-1-e6eb713fa2.gif")
+    welc_embed.set_footer(text=embed_footer)
+    await channel.send(embed=welc_embed)
+
+    role = discord.utils.get(member.server.roles, name="Member")  # Gets the member role as a `role` object
+    await client.add_roles(member, role)  # Gives the role to the user
+    print(f"Sent Welcome Embed and Member Role to {member.name}")
+
+
+
+
+#Help Command
+@client.group(pass_context=True, aliases=['info', 'help'], invoke_without_command=True)
+#@client.command(aliases=['info', 'help'])
+async def bothelp(ctx):
+        #Base Help embed
+    bothelp = discord.Embed(title="Help Command", url="https://moonball.io",description="`+help <module>` to learn more about that specific module\nModules Include - ```fix\nping, status, suggestion, ip, embed```", color=embed_color)
+    bothelp.set_author(name=f"{embed_header}")
+    bothelp.add_field(name="Prefix", value=f"The prefix is `{prefix}`", inline=True)
+    bothelp.add_field(name="Bot Version", value=f"{bot_version}", inline=True)
+    bothelp.add_field(name="Bot Dev", value="<@837584356988944396>", inline=True)
+    bothelp.add_field(name="Ping",
+                    value=f"Check the Bot's Ping and extra info relating to the bot's instance.\n`{prefix}help ping` to learn more",inline=True)
+    bothelp.add_field(name="Server Status",
+                    value=f"Check the live status of any one of our servers. Through a simple auto-trigger or a manual command (+servername). Details received include Player Count, CPU/RAM/Disk Usage and Uptime. \n`{prefix}help status`  to learn more.",inline=False)
+    bothelp.add_field(name="Suggestions ",
+                    value=f"Do you have any suggestions for our Discord Server or Minecraft Server? If yes, you can suggest with this command!. \n `{prefix}help Suggestions` to learn more.",inline=False)
+    bothelp.add_field(name="Server IP",
+                    value=f"This command is very simple, It just sends the IP to the server for both the Minecraft Java and Bedrock edition in a nice-looking embed. \n`{prefix}help ip` to learn more.",inline=False)
+    bothelp.add_field(name="Embed",
+                    value=f"Send a nice-looking embed in the current channel, With a simple syntax supporting Title, Content and a Image.\n`{prefix}help embed` to learn more.",inline=False)
+    bothelp.add_field(name="Reminder [Coming Soon]",
+                    value=f"Wanna remind someone about something, and you're sure they will forget 'bout it? Use this command to set a reminder for them for a specific time. \n`{prefix}help reminder` to learn more.",inline=False)
+    bothelp.set_footer(text=f"{embed_footer}")
+    await ctx.reply(embed=bothelp)
+    print(f'Sent Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}')
+
+@bothelp.command(aliases=['ping', 'stats', 'mem', 'stat', 'cpu'])
+async def ping_bothelp(ctx):
+    embed = discord.Embed(title="Help Command - Ping", url="https://moonball.io",
+                          description="This is the Help category for the `ping` command.", color=embed_color)
+    embed.set_author(name=f"{embed_header}")
+    embed.add_field(name="Description", value="The `ping` Command sends information relating to the bot's status.  ",
+                    inline=False)
+    embed.add_field(name="Features", value="Can be used to check Latency, CPU Usage, RAM Usage and Uptime.",
+                    inline=False)
+    embed.add_field(name="Version introduced in", value="\>0.05", inline=False)
+    embed.add_field(name="Aliases", value="```fix\nmem, memory, cpu, ram, lag, ping, stats```", inline=False)
+    embed.set_footer(text=f"{embed_footer}")
+    await ctx.send(embed=embed)
+
+
+@bothelp.command(aliases=['status'])
+async def status_bothelp(ctx):
+    embed = discord.Embed(title="Help Command - Status", url="https://moonball.io",
+                              description="This is the Help category for the `status` command.", color=embed_color)
+    embed.set_author(name=f"{embed_header}")
+    embed.add_field(name="Description",
+                        value=f"The `status` command sends info about a specific mentioned server. It can be triggered in 2 ways.\n►**Auto Trigger** - When user says 'up'/'down' and (servername) in the same message.\n►**Manual Trigger** - Using the command `{prefix}servername`",
+                        inline=False)
+    embed.add_field(name="Features", value="Can be used to check the Status, Players Online, CPU/RAM/Disk and Uptime information for a specific server",
+                        inline=False)
+    embed.add_field(name="Version introduced in", value="\>0.1", inline=False)
+    embed.add_field(name="Aliases", value=f"```fix\nProxy/Velocity, Auth/AuthServer, Lobby/Hub, Survival, Skyblock, Bedwars/Bedwar, Duels/Duel```", inline=False)
+    embed.set_footer(text=f"{embed_footer}")
+    await ctx.send(embed=embed)
+
+@bothelp.command(aliases=['suggest', 'suggestion'])
+async def suggest_bothelp(ctx):
+    embed = discord.Embed(title="Help Command - Suggestion", url="https://moonball.io",
+                          description="This is the Help category for the `Suggestion` command.", color=embed_color)
+    embed.set_author(name=f"{embed_header}")
+    embed.add_field(name="Description", value=f"The `Suggest` Command sends a user's suggestion to the <#{suggestion_channel}> channel. ",
+                    inline=False)
+    embed.add_field(name="Features", value="It posts your suggestion to the official suggestion channel of the server. Reacts to it with <:tick_bot:953561636566863903> and <:cross_bot:953561649254649866> so that it can be voted on and implemented!",
+                    inline=False)
+    embed.add_field(name="Version introduced in", value="0.2", inline=False)
+    embed.add_field(name="Aliases", value="```fix\nsuggest, suggestion```", inline=False)
+    embed.set_footer(text=f"{embed_footer}")
+    await ctx.send(embed=embed)
+
+@bothelp.command(aliases=['ip'])
+async def ip_bothelp(ctx):
+    embed = discord.Embed(title="Help Command - IP", url="https://moonball.io",
+                          description="This is the Help category for the `IP` command.", color=embed_color)
+    embed.set_author(name=f"{embed_header}")
+    embed.add_field(name="Description", value=f"The `IP` Command sends a nice-looking embed to the user.\nCan be triggered in 2 ways\n►**Automatic Trigger** - Any message with the word `ip` in it will trigger the embed\n**Manual Trigger** - Doing `+ip` will also send the embed",
+                    inline=False)
+    embed.add_field(name="Features", value="Posts the IPs of both Java and Bedrock in a convenient Embed. Reducing the manual work to post the ip message again and again.",
+                    inline=False)
+    embed.add_field(name="Version introduced in", value="0.01", inline=False)
+    embed.add_field(name="Aliases", value="```fix\nip```", inline=False)
+    embed.set_footer(text=f"{embed_footer}")
+    await ctx.send(embed=embed)
+
+@bothelp.command(aliases=['embed', 'announce', 'ann'])
+async def embed_bothelp(ctx):
+    embed = discord.Embed(title="Help Command - Embed", url="https://moonball.io",
+                          description="This is the Help category for the `Embed` command.", color=embed_color)
+    embed.set_author(name=f"{embed_header}")
+    embed.add_field(name="Description", value=f"The `Embed` Command creates a nice embed with a simple syntax ```yaml\n{prefix}embed The Embed Title - The Embed Content - https://insert.a/embed/image.png```\n Use `-` to separate all the 3 Items. Embed URL needs to be valid or else the embed won't send!",
+                    inline=False)
+    embed.add_field(name="Features", value="Posts a Embed with the user's liking's content to any channel and at any time!",
+                    inline=False)
+    embed.add_field(name="Version introduced in", value="0.05", inline=False)
+    embed.add_field(name="Aliases", value="```fix\nann, announce, embed```", inline=False)
+    embed.set_footer(text=f"{embed_footer}")
+    await ctx.send(embed=embed)
+
+# The IP command
+@client.command()
+async def ip(message):
+        # Sends IP embed
+    ipembed = discord.Embed(title="Here's the Server ip!", url="https://moonball.io", color=embed_color)
+    ipembed.set_author(name=embed_header)
+    ipembed.set_thumbnail(url="https://media.discordapp.net/attachments/880368661104316459/950775364928561162/logo.png")
+    ipembed.add_field(name="Java ", value="play.moonball.io", inline=True)  # <:java:914118540959813632>
+    ipembed.add_field(name="Bedrock ", value="play.moonball.io (Port 25565)",inline=False)  # <:Mc_Pocket_edition:903568186413293589>
+    ipembed.set_footer(text=embed_footer)
+    await message.reply(embed=ipembed)
+    print(f'Sent IP Embed to message of {message.author.name}#{message.author.discriminator}')
+
+
+    # Suggest Command
+@client.command(aliases=['suggestion'])
+async def suggest(message, *data):
+    guild = client.get_guild(894902529039687720)  # Replace "894902529039687720" with your server ID (Server Settings > Widget > Copy Server ID)
+    channel = guild.get_channel(suggestion_channel)  # To change this, Go on top of this file
+    data = " ".join(data).split(' - ') # Input Splitter
+        #The embed
+    s_embed = discord.Embed(title=f"Suggestion", url="https://moonball.io", color=embed_color)
+    s_embed.add_field(name=f"Submitted by {message.author.name}#{message.author.discriminator}", value=f"{data[0]}", inline=True)
+    s_embed.set_footer(text=f"{embed_footer}")
+    s = await channel.send(embed=s_embed)
+        #Adding reactions and logging, etc
+    await s.add_reaction("<:tick_bot:953561636566863903>")
+    await s.add_reaction("<:cross_bot:953561649254649866>")
+    await message.reply("Your Suggestion was sent! Check <#950720150032752680> to see how its doing!")
+    print(f"Sent {message.author.name}#{message.author.discriminator}'s suggestion!")
 
 
     #Bot Stats Command
 @client.command(aliases=['memory', 'mem', 'cpu', 'ram', 'lag', 'ping'])
 async def stats(message):
-    #Import the status finder for Bot
+        #Import the status finder for Bot
     st_server = "bot"  # Put the name for the server here (non-capitalised)
     placeholder = await status(st_server)
-
-    #Stats Embed
+        #Stats Embed
     stats = discord.Embed(title = 'System Resource Usage', description = 'See CPU and memory usage of the system.', url="https://moonball.io", color=embed_color)
     stats.set_author(name=embed_header)
-    stats.add_field(name='<:latency_bot:951055641307381770> Latency' , value=f'{round(client.latency * 1000)}ms', inline=False)
-    stats.add_field(name = '<:cpu_bot:951055641395478568> CPU Usage', value = f'{psutil.cpu_percent()}%', inline = False)
+    stats.add_field(name = '<:latency_bot:951055641307381770> Latency' , value=f'{round(client.latency * 1000)}ms', inline=False)
+    stats.add_field(name = '<:cpu_bot:951055641395478568> CPU Usage', value = f'{placeholder["cpuUsage"]}%', inline = False)
     stats.add_field(name = '<:ram_bot:951055641332563988> Memory Usage', value = f'{placeholder["memUsage"]}', inline = False)
     stats.add_field(name = '<:uptime_bot:951055640967675945> Uptime', value=f'{placeholder["uptime"]}', inline=False)
     stats.set_footer(text=embed_footer)
@@ -217,26 +351,23 @@ async def stats(message):
 
 
 
-#The announcement Embed creator
+    #The announcement Embed creator
 @client.command(aliases=['announce, ann'])
 async def embed(ctx, *data):
-    #Input Splitter
-    commands.has_permissions(administrator=True)
+        #Input Splitter
+    #commands.has_permissions(administrator=True)
     data = " ".join(data).split(' - ')
     syntax_error = False
-
-    #Veifying that it is a link, not random text (which would cause error)
+        #Veifying that it is a link, not random text (which would cause error)
     if not ("https" in data[2] or "http" in data[2]) or not (".png" in data[2] or ".jpg" in data[2]):
         syntax_error = True
         await ctx.send("Not a valid link")
-
-    #verifying complete syntax
+        #verifying complete syntax
     if len(data) != 3:
         syntax_error = True
         await ctx.send("The syntax is as follows: `+embed <title> - <description> - <image-url>")
     if syntax_error: return
-
-    #Announcement Builder
+        #Announcement Builder
     announcement = discord.Embed(title=f"Embed by {ctx.author.name}#{ctx.author.discriminator}", url="https://moonball.io", color=embed_color)
     announcement.set_thumbnail(url=f"{data[2]}")
     announcement.add_field(name=f"{data[0]}", value=f"{data[1]}", inline=True)
@@ -246,6 +377,8 @@ async def embed(ctx, *data):
     print(f'Sent Embed (Embed Creator) from message of {ctx.author.name}#{ctx.author.discriminator}')  # Logs to Console
 
 
+
+
 #This part is making aliases for each server's status
 #Just copy-paste of code, but with some things changed =D
 @client.command(aliases=['survival'])
@@ -253,52 +386,49 @@ async def statussurvival(message):
     st_server = "survival"  # Put the name for the server here (non-capitalised)
     st_ip = "192.168.100.80:25575"  # Put the IP for the Server here
     await serverstatus(message, st_server, st_ip)
-
 @client.command(aliases=['skyblock'])
 async def statusskyblock(message):
     st_server = "skyblock"  # Put the name for the server here (non-capitalised)
     st_ip = "192.168.100.70:25572"  # Put the IP for the Server here
     await serverstatus(message, st_server, st_ip)
-
-@client.command(aliases=['duels'])
+@client.command(aliases=['duels', 'duel'])
 async def statusduels(message):
     st_server = "duels"  # Put the name for the server here (non-capitalised)
     st_ip = "192.168.100.70:25573"  # Put the IP for the Server here
     await serverstatus(message, st_server, st_ip)
-
-@client.command(aliases=['bedwars'])
+@client.command(aliases=['bedwars', 'bedwar'])
 async def statusbedwars(message):
     st_server = "bedwars"  # Put the name for the server here (non-capitalised)
     st_ip = "192.168.100.70:25571"  # Put the IP for the Server here
     await serverstatus(message, st_server, st_ip)
-
-@client.command(aliases=['lobby'])
+@client.command(aliases=['lobby', 'hub'])
 async def statuslobby(message):
     st_server = "lobby"  # Put the name for the server here (non-capitalised)
     st_ip = "192.168.100.70:25577"  # Put the IP for the Server here
     await serverstatus(message, st_server, st_ip)
-
-@client.command(aliases=['auth'])
+@client.command(aliases=['auth', 'authserver'])
 async def statusauth(message):
     st_server = "auth"  # Put the name for the server here (non-capitalised)
     st_ip = "192.168.100.70:25578"  # Put the IP for the Server here
     await serverstatus(message, st_server, st_ip)
-
-@client.command(aliases=['proxy'])
+@client.command(aliases=['proxy', 'velocity'])
 async def statusproxy(message):
     st_server = "proxy"  # Put the name for the server here (non-capitalised)
     st_ip = "192.168.100.60:25565"  # Put the IP for the Server here
     await serverstatus(message, st_server, st_ip)
 
+@client.command(aliases=['test'])
+async def ajisd(message, *data):
+    data = " ".join(data).split(' - ')
+    if message.author.bot: return
 
-@client.command()
-async def test(ctx):
+    else:
+        #On word "ip" send the IP embed
+        if "potato" in data[0]:
+            print("tes")
+            message.send("testt")
 
-    st_ip = "192.168.100.70:25571"
-    server = MinecraftServer.lookup(f"{st_ip}")
-    query = server.query()
-    print(f"The server has the following players online: {query.players.online}")
-    await ctx.send(f"there are {query.players.online}")
+
 
 
 #
@@ -362,7 +492,6 @@ async def server_status():
     server_status = {}
     for i in range(len(guides)):
         server_status[guides[i][1]] = await stats(guides[i][1])
-
 
 
 client.run('token')
