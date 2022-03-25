@@ -16,6 +16,7 @@ from discord.ext import commands #Imports required Modules
 import discord, psutil, requests, asyncio, datetime
 from mcstatus import MinecraftServer
 
+
 intents = discord.Intents.all()
 intents.members = True
 client = commands.Bot(command_prefix=commands.when_mentioned_or("+"), intents=intents, help_command=None) #Setting prefix
@@ -26,28 +27,34 @@ async def on_ready(): #Stuff the bot does when it starts
     await client.change_presence(activity=discord.Game(f'on the Shenanigans Network')) #Set Presence
 
     global bot_version      #Sets the bot_version global variable
-    bot_version = "Beta 0.3.1"
+    bot_version = "Beta 0.3.3"
 
     global embed_footer     #Sets the default Embed footer
-    embed_footer = f"Shenanigans Bot • {bot_version}"
+    embed_footer = f"Moonball Bot • {bot_version}"
 
     global embed_color      #Sets the default Embed color
-    embed_color = 0xff0000
+    embed_color = 0x1a1aff
 
     global embed_header     #Sets the default Embed Header (Author)
-    embed_header = "Shenanigans Network"
+    embed_header = "Moonball Network"
 
     global general_channel  #The general_channel, where welcome messages are posted
     general_channel = 953482572850139136 # Put your welcome announcements channel id (for us, that's general)
 
     global suggestion_channel   #The suggestions channel, where +suggest posts.
-    suggestion_channel = 950720150032752680 # Put your suggestions channel's channel ID here
+    suggestion_channel = 956806563950112848 # Put your suggestions channel's channel ID here
 
     global prefix   #Changing this does not change the prefix, but this prefix shows in embeds, etc.
     prefix = "+"
 
 
-
+def listToString(s): 
+    
+    # initialize an empty string
+    str1 = " " 
+    
+    # return string  
+    return (str1.join(s))
 
 
 async def serverstatus(message, st_server,st_ip):   # Server Status front end
@@ -97,6 +104,19 @@ async def on_message(message):  #On message, Checks every message for...
             ipembed.set_footer(text="Maybe check the pins next time? eh.")
             await message.reply(embed = ipembed)
             print(f'Sent IP Embed to message of {message.author.name}#{message.author.discriminator}')      # Logs to Console
+
+
+        elif " version " in f" {message.content} ":
+                        # Sends version embed
+            vembed = discord.Embed(title="Here's the Server Version!", url="https://moonball.io", color=embed_color)
+            vembed.set_author(name=embed_header)
+            vembed.set_thumbnail(url="https://media.discordapp.net/attachments/880368661104316459/950775364928561162/logo.png")
+            vembed.add_field(name="Java ", value="1.13 - 1.18.2", inline=True)
+            vembed.add_field(name="Bedrock ", value="1.18 - 1.18.10", inline=False)
+            vembed.set_footer(text=embed_footer)
+            await message.reply(embed = vembed)
+            print(f'Sent Version Embed to message of {message.author.name}#{message.author.discriminator}')      # Logs to Console
+
 
         elif client.user in message.mentions:       #Replies to when the Bot in @mentioned
             await message.reply(f"Hello! The prefix is `{prefix}`. Use `{prefix}help` to view available commands.")
@@ -164,6 +184,8 @@ async def on_message(message):  #On message, Checks every message for...
         elif ".suggest" in f" {message.content} ":  #If a member uses the old .suggest command, tell them to use the new one
             await message.reply("Please use `+suggest` from now on, instead!")
 
+
+
         await client.process_commands(message)
 
 
@@ -196,7 +218,7 @@ async def on_member_join(member):
 @client.group(pass_context=True, aliases=['info', 'help'], invoke_without_command=True) #Help Command
 async def bothelp(ctx):
     #Base Help command embed
-    bothelp = discord.Embed(title="Help Command", url="https://moonball.io",description="`+help <module>` to learn more about that specific module\nModules Include - ```fix\nping, status, suggestion, ip, embed```", color=embed_color)
+    bothelp = discord.Embed(title="Help Command", url="https://moonball.io",description=f"Use `{prefix}help <module>` to learn more about that specific module\nModules Include - ```ini\n[ping, status, suggestion, ip/version, embed]```", color=embed_color)
     bothelp.set_author(name=f"{embed_header}")
     bothelp.add_field(name="Prefix", value=f"The prefix is `{prefix}`", inline=True)
     bothelp.add_field(name="Bot Version", value=f"{bot_version}", inline=True)
@@ -204,7 +226,7 @@ async def bothelp(ctx):
     bothelp.add_field(name="Ping",value=f"Check the Bot's Ping and extra info relating to the bot's instance.\n`{prefix}help ping` to learn more",inline=True)
     bothelp.add_field(name="Server Status",value=f"Check the live status of any one of our servers. Through a simple auto-trigger or a manual command (+servername). Details received include Player Count, CPU/RAM/Disk Usage and Uptime. \n`{prefix}help status`  to learn more.",inline=False)
     bothelp.add_field(name="Suggestions ",value=f"Do you have any suggestions for our Discord Server or Minecraft Server? If yes, you can suggest with this command!. \n `{prefix}help Suggestions` to learn more.",inline=False)
-    bothelp.add_field(name="Server IP",value=f"This command is very simple, It just sends the IP to the server for both the Minecraft Java and Bedrock edition in a nice-looking embed. \n`{prefix}help ip` to learn more.",inline=False)
+    bothelp.add_field(name="Server IP/Version",value=f"This command is very simple, It just sends the IP/Version of the server for both the Minecraft Java and Bedrock edition in a nice-looking embed. \n`{prefix}help ip/version` to learn more.",inline=False)
     bothelp.add_field(name="Embed",value=f"Send a nice-looking embed in the current channel, With a simple syntax supporting Title, Content and a Image.\n`{prefix}help embed` to learn more.",inline=False)
     bothelp.add_field(name="Reminder [Coming Soon]",value=f"Wanna remind someone about something, and you're sure they will forget 'bout it? Use this command to set a reminder for them for a specific time. \n`{prefix}help reminder` to learn more.",inline=False)
     bothelp.set_footer(text=f"{embed_footer}")
@@ -219,20 +241,19 @@ async def ping_bothelp(ctx):
     embed.add_field(name="Description", value="The `ping` Command sends information relating to the bot's status.  ",inline=False)
     embed.add_field(name="Features", value="Can be used to check Latency, CPU Usage, RAM Usage and Uptime.",inline=False)
     embed.add_field(name="Version introduced in", value="\>0.05", inline=False)
-    embed.add_field(name="Aliases", value="```fix\nmem, memory, cpu, ram, lag, ping, stats```", inline=False)
+    embed.add_field(name="Aliases", value="```ini\n[mem, memory, cpu, ram, lag, ping, stats]```", inline=False)
     embed.set_footer(text=f"{embed_footer}")
     await ctx.send(embed=embed)
     print(f'Sent Ping-Help sub-Embed to message of {ctx.author.name}#{ctx.author.discriminator}')  # Logs to Console
 
 @bothelp.command(aliases=['status'])    #Sub-command for help.
 async def status_bothelp(ctx):
-    embed = discord.Embed(title="Help Command - Status", url="https://moonball.io",
-                              description="This is the Help category for the `status` command.", color=embed_color)
+    embed = discord.Embed(title="Help Command - Status", url="https://moonball.io",description="This is the Help category for the `status` command.", color=embed_color)
     embed.set_author(name=f"{embed_header}")
     embed.add_field(name="Description",value=f"The `status` command sends info about a specific mentioned server. It can be triggered in 2 ways.\n►**Auto Trigger** - When user says 'up'/'down' and (servername) in the same message.\n►**Manual Trigger** - Using the command `{prefix}servername`",inline=False)
     embed.add_field(name="Features", value="Can be used to check the Status, Players Online, CPU/RAM/Disk and Uptime information for a specific server",inline=False)
     embed.add_field(name="Version introduced in", value="\>0.1", inline=False)
-    embed.add_field(name="Aliases", value=f"```fix\nProxy/Velocity, Auth/AuthServer, Lobby/Hub, Survival, Skyblock, Bedwars/Bedwar/bw, Duels/Duel```", inline=False)
+    embed.add_field(name="Aliases", value=f"```ini\n[Proxy/Velocity, Auth/AuthServer, Lobby/Hub, Survival, Skyblock, Bedwars/Bedwar/bw, Duels/Duel]```", inline=False)
     embed.set_footer(text=f"{embed_footer}")
     await ctx.send(embed=embed)
     print(f'Sent status-Help sub-Embed to message of {ctx.author.name}#{ctx.author.discriminator}')  # Logs to Console
@@ -242,21 +263,21 @@ async def suggest_bothelp(ctx):
     embed = discord.Embed(title="Help Command - Suggestion", url="https://moonball.io",description="This is the Help category for the `Suggestion` command.", color=embed_color)
     embed.set_author(name=f"{embed_header}")
     embed.add_field(name="Description", value=f"The `Suggest` Command sends a user's suggestion to the <#{suggestion_channel}> channel. ",inline=False)
-    embed.add_field(name="Features", value="It posts your suggestion to the official suggestion channel of the server. Reacts to it with <:tick_bot:953561636566863903> and <:cross_bot:953561649254649866> so that it can be voted on and implemented!",inline=False)
+    embed.add_field(name="Features", value="It posts your suggestion to the official suggestion channel of the server. Reacts to it with <:tick_bot:953561636566863903> and <:cross_bot:953561649254649866> so that it can be voted on and implemented! Say `nl` in the middle of the suggestion to go to the next line.",inline=False)
     embed.add_field(name="Version introduced in", value="0.2", inline=False)
-    embed.add_field(name="Aliases", value="```fix\nsuggest, suggestion```", inline=False)
+    embed.add_field(name="Aliases", value="```ini\n[suggest, suggestion, createsuggestion]```", inline=False)
     embed.set_footer(text=f"{embed_footer}")
     await ctx.send(embed=embed)
     print(f'Sent suggest-Help sub-Embed to message of {ctx.author.name}#{ctx.author.discriminator}')  # Logs to Console
 
-@bothelp.command(aliases=['ip'])    #Sub-command for help.
+@bothelp.command(aliases=['ip', 'version'])    #Sub-command for help.
 async def ip_bothelp(ctx):
-    embed = discord.Embed(title="Help Command - IP", url="https://moonball.io",description="This is the Help category for the `IP` command.", color=embed_color)
+    embed = discord.Embed(title="Help Command - IP", url="https://moonball.io",description="This is the Help category for the `IP`/`version` command.", color=embed_color)
     embed.set_author(name=f"{embed_header}")
-    embed.add_field(name="Description", value=f"The `IP` Command sends a nice-looking embed to the user.\nCan be triggered in 2 ways\n►**Automatic Trigger** - Any message with the word `ip` in it will trigger the embed\n**Manual Trigger** - Doing `+ip` will also send the embed",inline=False)
-    embed.add_field(name="Features", value="Posts the IPs of both Java and Bedrock in a convenient Embed. Reducing the manual work to post the ip message again and again.",inline=False)
+    embed.add_field(name="Description", value=f"The `IP`/`version` Command sends a nice-looking embed to the user.\nCan be triggered in 2 ways\n►**Automatic Trigger** - Any message with the word `ip` or `version` in it will trigger the embed\n**Manual Trigger** - Doing `+ip` or `+version` will also send the embed",inline=False)
+    embed.add_field(name="Features", value="Posts the IPs/Versions of both Java and Bedrock in a convenient Embed. Reducing the manual work to post the ip message again and again.",inline=False)
     embed.add_field(name="Version introduced in", value="0.01", inline=False)
-    embed.add_field(name="Aliases", value="```fix\nip```", inline=False)
+    embed.add_field(name="Aliases", value="```ini\n[ip, java, bedrock / version]```", inline=False)
     embed.set_footer(text=f"{embed_footer}")
     await ctx.send(embed=embed)
     print(f'Sent ip-Help sub-Embed to message of {ctx.author.name}#{ctx.author.discriminator}')  # Logs to Console
@@ -268,14 +289,14 @@ async def embed_bothelp(ctx):
     embed.add_field(name="Description", value=f"The `Embed` Command creates a nice embed with a simple syntax ```yaml\n{prefix}embed The Embed Title - The Embed Content - https://insert.a/embed/image.png```\n Use `-` to separate all the 3 Items. Embed URL needs to be valid or else the embed won't send!",inline=False)
     embed.add_field(name="Features", value="Posts a Embed with the user's liking's content to any channel and at any time!",inline=False)
     embed.add_field(name="Version introduced in", value="0.05", inline=False)
-    embed.add_field(name="Aliases", value="```fix\nann, announce, embed```", inline=False)
+    embed.add_field(name="Aliases", value="```ini\n[ann, announce, embed]```", inline=False)
     embed.set_footer(text=f"{embed_footer}")
     await ctx.send(embed=embed)
     print(f'Sent embed-Help sub-Embed to message of {ctx.author.name}#{ctx.author.discriminator}')  # Logs to Console
 
 
 
-@client.command()   # The IP command
+@client.command(aliases=['bedrock', 'java'])   # The IP command
 async def ip(message):
         #IP embed
     ipembed = discord.Embed(title="Here's the Server ip!", url="https://moonball.io", color=embed_color)
@@ -289,21 +310,74 @@ async def ip(message):
 
 
 
-@client.command(aliases=['suggestion']) # Suggest Command
+@client.command()
+async def version(message):
+                            # Sends version embed
+    vembed = discord.Embed(title="Here's the Server Version!", url="https://moonball.io", color=embed_color)
+    vembed.set_author(name=embed_header)
+    vembed.set_thumbnail(url="https://media.discordapp.net/attachments/880368661104316459/950775364928561162/logo.png")
+    vembed.add_field(name="Java ", value="1.13 - 1.18.2", inline=True)
+    vembed.add_field(name="Bedrock ", value="1.18 - 1.18.10", inline=False)
+    vembed.set_footer(text=embed_footer)
+    await message.reply(embed = vembed)
+    print(f'Sent Version Embed to message of {message.author.name}#{message.author.discriminator}')      # Logs to Console
+
+
+#This does NOT work.
+@client.command(aliases=['cpoll', 'sendpoll']) # Poll Command
+async def poll(message, *data):
+    guild = client.get_guild(894902529039687720)  # Replace "894902529039687720" with your server ID (Server Settings > Widget > Copy Server ID)
+    channel = guild.get_channel(suggestion_channel)  # To change this, Go on top of this file
+    data = " ".join(data).split(' - ') # Input Splitter
+    reactions = data[0]
+    a = data[1].replace(" nl ", " \n")
+
+    print(reactions)
+    print(data[1])
+        #The embed
+    s_embed = discord.Embed(title=f"Poll", url="https://moonball.io", color=embed_color)
+    s_embed.add_field(name=f"Poll by {message.author.name}#{message.author.discriminator}", value=f"{a}", inline=True)
+    s_embed.set_footer(text=f"{embed_footer}")
+    s = await message.send(embed=s_embed)
+
+    if reactions > 4: await message.send("You can't have more than 4 options ")
+    elif reactions < 2: await message.send("You can't have less than 2 options ")
+    elif reactions == 2:
+        #Adding reactions
+        await s.add_reaction("<:one:>")  #adding tick reaction
+        await s.add_reaction("<:two:>") #adding cross reaction
+    elif reactions == 3:
+        await s.add_reaction("<:one:>")  #adding tick reaction
+        await s.add_reaction("<:two:>") #adding cross reaction
+        await s.add_reaction("<:three:>") #adding cross reaction
+    elif reactions == 4:
+        await s.add_reaction("<:one:>")  #adding tick reaction
+        await s.add_reaction("<:two:>") #adding cross reaction
+        await s.add_reaction("<:three:>") #adding cross reaction
+        await s.add_reaction("<:four:>") #
+    else: await message.reply("There was a internal error, Please ping the dev.")
+    
+    await message.reply("Your Poll was sent!")
+    print(f"Sent {message.author.name}#{message.author.discriminator}'s Poll!")
+
+
+
+@client.command(aliases=['suggestion', 'createsuggestion']) # Suggest Command
 async def suggest(message, *data):
     guild = client.get_guild(894902529039687720)  # Replace "894902529039687720" with your server ID (Server Settings > Widget > Copy Server ID)
     channel = guild.get_channel(suggestion_channel)  # To change this, Go on top of this file
     data = " ".join(data).split(' - ') # Input Splitter
+    a = data[0].replace(" nl ", " \n")
         #The embed
     s_embed = discord.Embed(title=f"Suggestion", url="https://moonball.io", color=embed_color)
-    s_embed.add_field(name=f"Submitted by {message.author.name}#{message.author.discriminator}", value=f"{data[0]}", inline=True)
+    s_embed.add_field(name=f"Suggestion by {message.author.name}#{message.author.discriminator}", value=f"{a}", inline=True)
     s_embed.set_footer(text=f"{embed_footer}")
     s = await channel.send(embed=s_embed)
         #Adding reactions and logging
     await s.add_reaction("<:tick_bot:953561636566863903>")  #adding tick reaction
     await s.add_reaction("<:cross_bot:953561649254649866>") #adding cross reaction
-    await message.reply("Your Suggestion was sent! Check <#950720150032752680> to see how its doing!")
-    print(f"Sent {message.author.name}#{message.author.discriminator}'s suggestion!")
+    await message.reply(f"Your Suggestion was sent! Check <#{suggestion_channel}> to see how its doing!")
+    print(f"Sent {message.author.name}#{message.author.discriminator}'s Suggestion")
 
 
 
