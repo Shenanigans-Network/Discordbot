@@ -34,8 +34,7 @@ from mcstatus import MinecraftServer
 
 intents = discord.Intents.all()
 intents.members = True
-client = commands.Bot(command_prefix=commands.when_mentioned_or("+"), intents=intents,
-                      help_command=None)  # Setting prefix
+client = commands.Bot(command_prefix=commands.when_mentioned_or("+"), intents=intents,help_command=None)  # Setting prefix
 
 
 @client.event
@@ -46,7 +45,7 @@ async def on_ready():  # Stuff the bot does when it starts
     # DiscordComponents(client, change_discord_methods=True)
 
     global bot_version  # Sets the bot_version global variable
-    bot_version = "Beta 0.3.2"
+    bot_version = "Beta 0.3.1"
 
     global embed_footer  # Sets the default Embed footer
     embed_footer = f"Moonball Bot • {bot_version}"
@@ -78,7 +77,7 @@ async def on_ready():  # Stuff the bot does when it starts
 
     global staff_ids
     staff_ids = [837584356988944396, 493852865907916800, 448079898515472385, 744835948558286899, 865232500744519680, 891307274935607306]
-    #              #Raj                    #Iba                #Rocky              #Kabashi            #Jagadesh           #Amoricito
+    #                 #Raj                    #Iba                #Rocky              #Kabashi            #Jagadesh           #Amoricito
 
     global prefix  # Changing this does not change the prefix, but this prefix shows in embeds, etc.
     prefix = "+"
