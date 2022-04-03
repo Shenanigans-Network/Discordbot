@@ -27,8 +27,6 @@
 from discord.ext import commands  # Imports required Modules
 import discord, requests, pickle, random, json
 from mcstatus import MinecraftServer
-
-
 # from discord_components import DiscordComponents, Button, ButtonStyle, InteractionType
 
 
@@ -39,13 +37,10 @@ client = commands.Bot(command_prefix=commands.when_mentioned_or("+"), intents=in
 
 @client.event
 async def on_ready():  # Stuff the bot does when it starts
-    print("Connected to Discord!")  # Print this when the bot starts
     await client.change_presence(activity=discord.Game(f'on the Moonball Network'))  # Set Presence
-
     # DiscordComponents(client, change_discord_methods=True)
-
     global bot_version  # Sets the bot_version global variable
-    bot_version = "Beta 0.3.1"
+    bot_version = "Beta 0.3.2"
 
     global embed_footer  # Sets the default Embed footer
     embed_footer = f"Moonball Bot • {bot_version}"
@@ -57,8 +52,7 @@ async def on_ready():  # Stuff the bot does when it starts
     embed_header = "Moonball Network"
 
     global guild
-    guild = client.get_guild(
-        894902529039687720)  # Replace "894902529039687720" with your server ID (Server Settings > Widget > Copy Server ID)
+    guild = client.get_guild(894902529039687720)  # Replace "894902529039687720" with your server ID (Server Settings > Widget > Copy Server ID)
 
     global general_channel  # The general_channel, where welcome messages are posted
     general_channel = guild.get_channel(953482572850139136)  # Put your welcome announcements channel id (for us, that's general)
@@ -76,14 +70,16 @@ async def on_ready():  # Stuff the bot does when it starts
     embed_log = guild.get_channel(957608675210559558)
 
     global staff_ids
-    staff_ids = [837584356988944396, 493852865907916800, 448079898515472385, 744835948558286899, 865232500744519680, 891307274935607306]
-    #                 #Raj                    #Iba                #Rocky              #Kabashi            #Jagadesh           #Amoricito
+    staff_ids = [837584356988944396, 493852865907916800, 448079898515472385, 744835948558286899, 865232500744519680,         891307274935607306]
+    #                   #Raj                    #Iba                #Rocky              #Kabashi            #Jagadesh           #Amoricito
 
     global prefix  # Changing this does not change the prefix, but this prefix shows in embeds, etc.
     prefix = "+"
 
     global ptero_apikey
     ptero_apikey = "key"
+
+    print("Connected to Discord!")  # Print this when the bot starts
 
 
 #
@@ -140,7 +136,7 @@ async def on_raw_reaction_add(payload):  # checks whenever a reaction is added t
 
 
 async def ip_embed(ctx):
-    ipembed = discord.Embed(title="Here's the Server ip!", url="https://moonball.io", color=embed_color)
+    ipembed = discord.Embed(title="Here's the Server IP!", url="https://moonball.io", color=embed_color)
     ipembed.set_author(name=embed_header)
     ipembed.set_thumbnail(url="https://media.discordapp.net/attachments/880368661104316459/950775364928561162/logo.png")
     ipembed.add_field(name="Java ", value="play.moonball.io", inline=True)
@@ -181,8 +177,7 @@ async def serverstatus(ctx, st_server, st_ip):  # Server Status front end
         try:
             query = server.query()  # Try to get player info from server, only IF it is online
             playerCount = query.players.online
-        except:
-            playerCount = 0  # If unreachable, set it to 0
+        except: playerCount = 0  # If unreachable, set it to 0
     elif serverstatus == "starting":
         serverstatus = "Starting <:partial:915916197848047646>"
         playerCount = 0
@@ -339,7 +334,7 @@ async def statusproxy(ctx): await serverstatus(ctx, "proxy", "192.168.100.60:255
 async def on_member_join(member):
     # The embed for Welcome Announcements
     welc_embed = discord.Embed(title=f'Welcome to the Discord Server!', url="https://moonball.io", color=embed_color)
-    welc_embed.add_field(name="Shenanigans Network",value=f"<a:malconfetti:910127223791554570> Welcome {member.mention} to the Discord! <a:malconfetti:910127223791554570>\n<a:Read_Rules:910128684751544330> Please check out the Server Rules here <#894902529039687722> <a:Read_Rules:910128684751544330>\n <a:hypelove:901476784204288070> Take your Self Roles at <#910130264905232424> <a:hypelove:901476784204288070>\n <:02cool:910128856550244352> Head over to ⛧╭･ﾟgeneral-eng to talk with others! <:02cool:910128856550244352> \n<a:Hearts:952919562846875650> Server info and IP can be found here <#897502089025052693> <a:Hearts:952919562846875650>",inline=True)
+    welc_embed.add_field(name="Moonball Network",value=f"<a:malconfetti:910127223791554570> Welcome {member.mention} to the Discord! <a:malconfetti:910127223791554570>\n<a:Read_Rules:910128684751544330> Please check out the Server Rules here <#894902529039687722> <a:Read_Rules:910128684751544330>\n <a:hypelove:901476784204288070> Take your Self Roles at <#910130264905232424> <a:hypelove:901476784204288070>\n <:02cool:910128856550244352> Head over to ⛧╭･ﾟgeneral-eng to talk with others! <:02cool:910128856550244352> \n<a:Hearts:952919562846875650> Server info and IP can be found here <#897502089025052693> <a:Hearts:952919562846875650>",inline=True)
     welc_embed.set_image(url="https://media.discordapp.net/attachments/896348336972496936/952940944175554590/ezgif-1-e6eb713fa2.gif")
     welc_embed.set_footer(text=embed_footer)
     await general_channel.send(embed=welc_embed)
@@ -659,7 +654,7 @@ async def poll(ctx, *data):
     # guild = client.get_guild(894902529039687720)  # Replace "894902529039687720" with your server ID (Server Settings > Widget > Copy Server ID)
     try:
         data = " ".join(data).split(' | ')  # Input Splitter
-        reactionc = data[0]
+        reactionc = int(data[0])
         content = data[1].replace(" nl ", " \n")
     except:
         await ctx.send(f"There was an error! The Syntax is perhaps incorrect. The corret Syntax is ```ini\n{prefix}poll [number of options] | [Your poll Text here]```\n For more, check out `{prefix}help poll`.")
@@ -668,10 +663,10 @@ async def poll(ctx, *data):
     p_embed = discord.Embed(title=f"Poll", url="https://moonball.io", color=embed_color)
     p_embed.add_field(name=f"Poll by {ctx.author.name}#{ctx.author.discriminator}", value=f"{content}", inline=True)
     p_embed.set_footer(text=f"{embed_footer}")
-    if int(reactionc) > 4:  # Check if number of reactions is more than 4
+    if reactionc > 4:  # Check if number of reactions is more than 4
         await ctx.send("Sorry, You can't have more than 4 options in a Poll")
         return
-    elif int(reactionc) < 2:  # Check if number of reactions is less than 2
+    elif reactionc < 2:  # Check if number of reactions is less than 2
         await ctx.send("Sorry, You can't have less than 2 options in a Poll")
         return
     else:
@@ -761,6 +756,30 @@ async def sendcmd_admin(ctx, *data):    # Send Command Admin Command
     await embed_log.send(embed=embed)  # Sending it to the Logs channel
 
 
+@admin.command(aliases=['takemoney', 'take', 'take_money'])
+@commands.has_permissions(administrator=True)
+async def take_money_admin(ctx, *data):  # Take Money Admin Command
+    data = " ".join(data).split(' | ')  # Input Splitter
+    if len(data[0]) <= 3 or len(data[1]) <= 16:
+        await ctx.send("Invalid User Name")
+    if data[1].isnumeric():
+        await ctx.send("Invalid Amount")
+    cmd = f"eco take {data[0]} {data[1]}"
+    try : p = await sendcmd(ctx, "proxy", cmd)
+    except :
+        await ctx.reply("There was a error in sending the command")
+        return
+    if p != "done": return
+    embed = discord.Embed(title="Admin - Take Money", url="https://moonball.io", color=embed_color)
+    embed.set_author(name=f"{embed_header}")
+    embed.add_field(name="Operation Successful!",value=f"Successfully took {data[1]} from {data[0]} \n \n**User** - `{data[0]}` \n **Amount** - `{data[1]}`",inline=False)
+    embed.set_footer(text=f"{embed_footer}")
+    await ctx.reply(embed=embed)
+    print(f"{ctx.author.name}#{ctx.author.discriminator} took {data[1]} from {data[0]}")    # Logs to Console
+    await log_channel.send(f'**Admin** : #{countadd("a")} took {data[1]} from {data[0]}')  # Logs to Log channel
+    await embed_log.send(embed=embed)  # Sending it to the Logs channel
+
+
 @admin.command(aliases=['changepw', 'changepassword', 'pw', 'password'])
 @commands.has_permissions(administrator=True)
 async def changepw_admin(ctx, *data):   # Change Password Command
@@ -787,6 +806,7 @@ async def changepw_admin(ctx, *data):   # Change Password Command
     print(f"{ctx.author.name}#{ctx.author.discriminator} changed the password of {data[0]}")    # Logs to Console
     await log_channel.send(f'**Admin** : #{countadd("a")} Changed the password of `{data[0]}`')  # Logs to Log channel
     await embed_log.send(embed=embed)  # Sending it to the Logs channel
+
 
 
 @admin.command(aliases=['startserver', 'serverstart', 'ss', 'start'])
