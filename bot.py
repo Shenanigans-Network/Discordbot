@@ -542,7 +542,7 @@ async def password_admin(ctx):  # Help password
     await logger(ctx, "h", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}", "help", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator})", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}") # Logs to Log channel
 
 @admin.group(aliases=['helpgive', 'helptake'])
-async def password_admin(ctx):  # Help password
+async def helptg_admin(ctx):  # Help password
     if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
     # Base Admin-Help command embed
     bothelp = discord.Embed(title="Admin Help - Give/Take Money", url="https://moonball.io", description=f"Use `{prefix}admin give/take [username] [money]` to execute the command.\nGive or take money from a user", color=embed_color)
@@ -917,7 +917,7 @@ async def server_status():
         ["6e5ed2ac", "duels"],
         ["edeeff53", "bedwars"],
         ["5426b68e", "bot"],
-        ["5a1b4028", "parkour"]
+        ["5a1b4028", "parkour"],
         ["d1e50e31", "limbo"]
     ]
 
