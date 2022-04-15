@@ -32,53 +32,32 @@ from mcstatus import MinecraftServer
 
 intents = discord.Intents.all()
 intents.members = True
-client = commands.Bot(command_prefix=commands.when_mentioned_or("+"), intents=intents,
-                      help_command=None, case_insensitive=False)  # Setting prefix
+client = commands.Bot(command_prefix=commands.when_mentioned_or("+"), intents=intents, help_command=None, case_insensitive=False)  # Setting prefix
 
 
 @client.event
 async def on_ready():  # Stuff the bot does when it starts
     await client.change_presence(activity=discord.Game(f'on the Moonball Network'))  # Set Presence
     # DiscordComponents(client, change_discord_methods=True)
-    global bot_version  # Sets the bot_version global variable
-    bot_version = "Beta 0.3.4"
 
-    global embed_footer  # Sets the default Embed footer
-    embed_footer = f"Moonball Bot • {bot_version}"
+    global ptero_apikey, prefix, staff_ids, bot_version, embed_footer, embed_color, embed_header, guild, general_channel, cmd_channel, suggestion_channel, log_channel, embed_log, server_guide
 
-    global embed_color  # Sets the default Embed color
-    embed_color = 0x1a1aff
 
-    global embed_header  # Sets the default Embed Header (Author)
-    embed_header = "Moonball Network"
-
-    global guild
-    guild = client.get_guild(894902529039687720)  # Server Settings > Widget > Copy Server ID
-
-    global general_channel  # The general_channel, where welcome messages are posted
-    general_channel = guild.get_channel(960196760565841941)  # Put your welcome announcements channel id
-
-    global cmd_channel
-    cmd_channel = 960196816605950042  # Put your command channel id (for us, that's 960196816605950042)
-
-    global suggestion_channel  # The suggestions channel, where +suggest posts.
+    bot_version = "Beta 0.3.6"                                  # Bot Version
+    embed_footer = f"Moonball Bot • {bot_version}"              # Embed footer
+    embed_color = 0x1a1aff                                      # Embed Color
+    embed_header = "Moonball Network"                           # Header/Author used in embeds
+    guild = client.get_guild(894902529039687720)                # Server Settings > Widget > Copy Server ID
+    general_channel = guild.get_channel(960196760565841941)     # Put your welcome announcements channel id
+    cmd_channel = 960196816605950042                            # Put your command channel id (for us, that's 960196816605950042)
     suggestion_channel = guild.get_channel(960203053103972403)  # Put your suggestions channel's channel ID here
-
-    global log_channel  # The channel to log Everything except suggestions and embeds in
-    log_channel = guild.get_channel(960204154549194903)  # Put your log channel's channel ID here
-
-    global embed_log
+    log_channel = guild.get_channel(960204154549194903)         # Put your log channel's channel ID here
     embed_log = guild.get_channel(960204173989789736)
-
-    global staff_ids
     staff_ids = [837584356988944396, 493852865907916800, 448079898515472385, 744835948558286899, 865232500744519680,         891307274935607306]
     #            #Raj                    #Iba                #Rocky              #Kabashi            #Jagadesh           #Amoricito
-
-    global prefix  # Changing this does not change the prefix, but this prefix shows in embeds, etc.
     prefix = "+"
-
-    global ptero_apikey
     ptero_apikey = "key"  # Put your Pterodactyl API key here
+
 
     print("Connected to Discord!")  # Print this when the bot starts
 
@@ -155,22 +134,19 @@ async def serverstatus(ctx, st_server, st_ip):  # Server Status front end
     if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
     server = MinecraftServer.lookup(f"{st_ip}")  # Gets server player-info from API
     try: placeholder = await status(st_server)  # Gets server info from Ptero API
-    except:
-        await ctx.reply("There was an error while trying to get server info, the panel is perhaps down. Please ping the Staff"); return
+    except: await ctx.reply("There was an error while trying to get server info, the panel is perhaps down. Please ping the Staff"); return
     serverstatus = placeholder["state"]  # Setting serverstatus as placeholder state
-    if serverstatus == "offline": # If server is offline
+    if serverstatus == "offline":   # If server is offline
         serverstatus = "Offline <:offline:915916197797715979>"
         playerCount = 0
     elif serverstatus == "running":
         serverstatus = "Online <:online:915916197973864449>"
-        try:
-            query = server.query()  # Try to get player info from server, only IF it is online
-            playerCount = query.players.online
+        try: playerCount = server.query().players.online
         except: playerCount = 0  # If unreachable, set it to 0
-    elif serverstatus == "starting":
+    elif serverstatus == "starting":    # If server is starting
         serverstatus = "Starting <:partial:915916197848047646>"
         playerCount = 0
-    elif serverstatus == "stopping":
+    elif serverstatus == "stopping":    # If server is stopping
         serverstatus = "Stopping <:outage:915916198032588800>"
         playerCount = 0
     # The embed it sends.
@@ -204,7 +180,7 @@ async def on_message(ctx):  # On message, Checks every message for...
             await ctx.reply(f"Hello! my prefix is `{prefix}`. Use `{prefix}help` to view available commands.",delete_after=10.0)
             await logger(ctx, "h", f"Sent Mention message to {ctx.author.name}#{ctx.author.discriminator}", "help", f"Sent mention-message to message of {ctx.author.name}#{ctx.author.discriminator}")
 
-        # Check Messages for [servername] and "Down/up" A repeat of the same thing multiple times for every server
+        # Check Messages for [servername] and "Down"
         elif " survival " in f" {ctx.content} " and "down" in f" {ctx.content} ": await serverstatus(ctx, "survival", "192.168.100.80:25575")
         elif " skyblock " in f" {ctx.content} " and "down" in f" {ctx.content} ": await serverstatus(ctx, "skyblock", "192.168.100.70:25572")
         elif " duels " in f" {ctx.content} " and "down" in f" {ctx.content} ": await serverstatus(ctx, "duels", "192.168.100.70:25573")
@@ -213,6 +189,7 @@ async def on_message(ctx):  # On message, Checks every message for...
         elif " proxy " in f" {ctx.content} " and "down" in f" {ctx.content} ": await serverstatus(ctx, "proxy", "192.168.100.60:25565")
         elif " lobby " in f" {ctx.content} " and "down" in f" {ctx.content} ": await serverstatus(ctx, "lobby", "192.168.100.70:25577")
         elif " parkour " in f" {ctx.content} " and "down" in f" {ctx.content} ": await serverstatus(ctx, "parkour", "192.168.100.70:25579")
+        elif " limbo " in f" {ctx.content} " and "down" in f" {ctx.content} ": await serverstatus(ctx, "limbo", "192.168.100.60:25566")
 
         # Check msgs for [servername] and "Up"
         elif " survival " in f" {ctx.content} " and "up" in f" {ctx.content} ": await serverstatus(ctx, "survival", "192.168.100.80:25575")
@@ -223,6 +200,7 @@ async def on_message(ctx):  # On message, Checks every message for...
         elif " proxy " in f" {ctx.content} " and "up" in f" {ctx.content} ": await serverstatus(ctx, "proxy", "192.168.100.60:25565")
         elif " lobby " in f" {ctx.content} " and "up" in f" {ctx.content} ": await serverstatus(ctx, "lobby", "192.168.100.70:25577")
         elif " parkour " in f" {ctx.content} " and "up" in f" {ctx.content} ": await serverstatus(ctx, "parkour", "192.168.100.70:25579")
+        elif " limbo " in f" {ctx.content} " and "up" in f" {ctx.content} ": await serverstatus(ctx, "limbo", "192.168.100.60:25566")
 
         await client.process_commands(ctx)
 
@@ -288,11 +266,12 @@ async def statusproxy(ctx): await serverstatus(ctx, "proxy", "192.168.100.60:255
 @client.command(aliases=['parkour'])  # Status cmd for parkour
 async def statusparkour(ctx): await serverstatus(ctx, "parkour", "192.168.100.70:25579")
 
-
+@client.command(aliases=['limbo'])  # Status cmd for limbo
+async def statuslimbo(ctx): await serverstatus(ctx, "limbo", "192.168.100.60:25566")
 
 #
 #
-#   Other Catagory
+#   Other Category
 #
 #
 
@@ -382,7 +361,7 @@ async def status_bothelp(ctx):
     embed.add_field(name="Description",value=f"The `status` command sends info about a specific mentioned server. It can be triggered in 2 ways.\n►**Auto Trigger** - When user says 'up'/'down' and (servername) in the same message.\n►**Manual Trigger** - Using the command `{prefix}servername`",inline=False)
     embed.add_field(name="Features",value="Can be used to check the Status, Players Online, CPU/RAM/Disk and Uptime information for a specific server",inline=False)
     embed.add_field(name="Version introduced in", value="\>0.1", inline=False)
-    embed.add_field(name="Aliases",value=f"```ini\n[Proxy/Velocity, Auth/AuthServer, Lobby/Hub, Survival, Skyblock, Bedwars/Bedwar/bw, Duels/Duel]```",inline=False)
+    embed.add_field(name="Aliases",value=f"```ini\n[Proxy/Velocity, Limbo, Auth/AuthServer, Lobby/Hub, Survival, Skyblock, Bedwars/Bedwar/bw, Duels/Duel, Parkour]```",inline=False)
     embed.set_footer(text=f"{embed_footer}")
     await ctx.reply(embed=embed)
     await logger(ctx, "h", f"Sent Status-Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}", "help", f"Sent Status-Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}")
@@ -509,7 +488,7 @@ async def changeserverpower_admin(ctx):  # Help changeserverstate
     bothelp.add_field(name="Description", value=f"This command changes the power/state of any server", inline=True)
     bothelp.add_field(name="Features",value=f"Start/Stop/Restart or Kill a server just with one single command here on Discord, using a conveniently easy command!",inline=False)
     bothelp.add_field(name="Valid States", value=f"```ini\n[start, stop, restart, kill]```", inline=False)
-    bothelp.add_field(name="Valid Servers", value="```ini\n[proxy, auth, lobby, survival, skyblock, duels, bedwars]```",inline=False)
+    bothelp.add_field(name="Valid Servers", value="```ini\n[proxy, limbo, auth, lobby, survival, skyblock, duels, bedwars, parkour]```",inline=False)
     bothelp.set_footer(text=f"{embed_footer}")
     await ctx.reply(embed=bothelp)
     await logger(ctx, "h", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}", "help", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator})", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}") # Logs to Log channel
@@ -522,7 +501,7 @@ async def changecmd_admin(ctx):  # Help sendcmd
     bothelp.set_author(name=f"{embed_header}")
     bothelp.add_field(name="Description", value=f"This command can send a command to the mentioned server", inline=True)
     bothelp.add_field(name="Features",value=f"Send a in-game command to any mentioned server here on Discord, using a conveniently easy command and easy syntax!",inline=False)
-    bothelp.add_field(name="Valid Servers", value="```ini\n[proxy, auth, lobby, survival, skyblock, duels, bedwars]```",inline=False)
+    bothelp.add_field(name="Valid Servers", value="```ini\n[proxy, limbo, auth, lobby, survival, skyblock, duels, bedwars, parkour]```",inline=False)
     bothelp.add_field(name="Syntax", value=f"```ini\n{prefix}admin cmd server | command here!```", inline=False)
     bothelp.set_footer(text=f"{embed_footer}")
     await ctx.reply(embed=bothelp)
@@ -682,7 +661,7 @@ async def suggest(ctx, *data):
 @commands.has_permissions(administrator=True)
 async def sendcmd_admin(ctx, *data):    # Send Command Admin Command
     data = " ".join(data).split(' | ')  # Input Splitter
-    valid_names = ["proxy", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot"]
+    valid_names = ["proxy", "limbo", "parkour", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot"]
     if data[0] not in valid_names: await ctx.send("Invalid Name"); return "invalid_name"
     if data[1] == "": await ctx.send("Invalid command to send"); return "invalid_cmd"
     try: p = await sendcmd(ctx, data[0], data[1])
@@ -690,7 +669,7 @@ async def sendcmd_admin(ctx, *data):    # Send Command Admin Command
     if p != "done": return
     embed = discord.Embed(title="Admin - Send Command", url="https://moonball.io", color=embed_color)
     embed.set_author(name=f"{embed_header}")
-    embed.add_field(name="Operation Successful!",value=f"Successfully Sent the Command. Issued by {ctx.author.name}#{ctx.author.discriminator} \n \n**Server** - `{data[0]}` \n **Command** - `{data[1]}`",inline=False)
+    embed.add_field(name="Operation Successful!", value=f"Successfully Sent the Command. Issued by {ctx.author.name}#{ctx.author.discriminator} \n \n**Server** - `{data[0]}` \n **Command** - `{data[1]}`",inline=False)
     embed.set_footer(text=f"{embed_footer}")
     await ctx.reply(embed=embed)
     await embed_log.send(embed=embed)  # Sending it to the Logs channel
@@ -708,7 +687,7 @@ async def take_money_admin(ctx, *data):  # Take Money Admin Command
     if p != "done": return
     embed = discord.Embed(title="Admin - Take Money", url="https://moonball.io", color=embed_color)
     embed.set_author(name=f"{embed_header}")
-    embed.add_field(name="Operation Successful!",value=f"Successfully took {data[1]} from {data[0]} \n \n**User** - `{data[0]}` \n **Amount** - `{data[1]}`",inline=False)
+    embed.add_field(name="Operation Successful!", value=f"Successfully took {data[1]} from {data[0]} \n \n**User** - `{data[0]}` \n **Amount** - `{data[1]}`",inline=False)
     embed.set_footer(text=f"{embed_footer}")
     await ctx.reply(embed=embed)
     await embed_log.send(embed=embed)  # Sending it to the Logs channel
@@ -724,7 +703,7 @@ async def give_money_admin(ctx, *data):  # Take Money Admin Command
     if p != "done": return
     embed = discord.Embed(title="Admin - Take Money", url="https://moonball.io", color=embed_color)
     embed.set_author(name=f"{embed_header}")
-    embed.add_field(name="Operation Successful!",value=f"Successfully gave {data[1]} from {data[0]} \n \n**User** - `{data[0]}` \n **Amount** - `{data[1]}`",inline=False)
+    embed.add_field(name="Operation Successful!", value=f"Successfully gave {data[1]} from {data[0]} \n \n**User** - `{data[0]}` \n **Amount** - `{data[1]}`",inline=False)
     embed.set_footer(text=f"{embed_footer}")
     await ctx.reply(embed=embed)
     await embed_log.send(embed=embed)  # Sending it to the Logs channel
@@ -756,7 +735,7 @@ async def changepw_admin(ctx, *data):   # Change Password Command
 @commands.has_permissions(administrator=True)
 async def start_admin(ctx, *data):  # Start Server Command
     data = " ".join(data).split()  # Input Splitter
-    valid_names = ["proxy", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot"]
+    valid_names = ["proxy", "limbo", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot", "parkour"]
     if data[0] not in valid_names: await ctx.reply(f"Error : Invalid Server Name. Use `{prefix}admin css` to learn more!"); return
     try: e = await serverpower(data[0], "start", ctx)
     except: await ctx.reply(f"There was an error. Use `{prefix}admin css` to learn more"); return
@@ -772,10 +751,10 @@ async def start_admin(ctx, *data):  # Start Server Command
 @commands.has_permissions(administrator=True)
 async def stop_admin(ctx, *data):   # Stop Server Command
     data = " ".join(data).split()  # Input Splitter
-    valid_names = ["proxy", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot"]
+    valid_names = ["proxy", "limbo", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot", "parkour"]
     if data[0] not in valid_names: await ctx.reply(f"Error : Invalid Server Name. Use `{prefix}admin css` to learn more!"); return
     try: e = await serverpower(data[0], "stop", ctx)
-    except:await ctx.reply(f"There was an error. Use `{prefix}admin css` to learn more"); return
+    except: await ctx.reply(f"There was an error. Use `{prefix}admin css` to learn more"); return
     if e == "exception": return
     embed = discord.Embed(title="Server Power", url="https://moonball.io/",description=f"Starts/Stops/Restarts or Kills a specific server on command.\n `{prefix}admin css` to learn more!",color=embed_color)
     embed.set_author(name=f"{embed_header}")
@@ -788,7 +767,7 @@ async def stop_admin(ctx, *data):   # Stop Server Command
 @commands.has_permissions(administrator=True)
 async def restart_admin(ctx, *data): # Restart Server Command
     data = " ".join(data).split()  # Input Splitter
-    valid_names = ["proxy", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot"]
+    valid_names = ["proxy", "limbo", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot", "parkour"]
     if data[0] not in valid_names: await ctx.reply(f"Error : Invalid Server Name. Use `{prefix}admin css` to learn more!"); return
     try: e = await serverpower(data[0], "restart", ctx)
     except: await ctx.reply(f"There was an error. Use `{prefix}admin css` to learn more"); return
@@ -804,7 +783,7 @@ async def restart_admin(ctx, *data): # Restart Server Command
 @commands.has_permissions(administrator=True)
 async def kill_admin(ctx, *data): # Kill Server Command
     data = " ".join(data).split()  # Input Splitter
-    valid_names = ["proxy", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot"]
+    valid_names = ["proxy", "limbo", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot", "parkour"]
     if data[0] not in valid_names: await ctx.reply(f"Error : Invalid Server Name. Use `{prefix}admin css` to learn more!");return
     try: e = await serverpower(data[0], "kill", ctx)
     except: await ctx.send(f"There was an error. Use `{prefix}admin css` to learn more"); return
@@ -888,14 +867,14 @@ def form_dict(stats):  # Takes raw data from the ptero API and converts it into 
                  str(round(stats["attributes"]["resources"]["cpu_absolute"], 2)),
                  str(round(stats["attributes"]["resources"]["disk_bytes"] / 1073741824, 2)) + " GB",
                  str(round(stats["attributes"]["resources"]["uptime"] / 3600000, 2)) + " hour(s)"]
-    for ind, ph_key in enumerate(ph_keys): placeholders[ph_key] = ph_values[ind]; return placeholders
+    for ind, ph_key in enumerate(ph_keys): placeholders[ph_key] = ph_values[ind]
+    return placeholders
 
 
 async def status(servername):
     ptero_panel = "panel.moonball.io"  # Put your Ptero Panel's URL here
-
-    server_guide = {'fe5a4fe1': 'proxy', 'e91b165c': 'auth', 'd0f6701c': 'lobby', '5d0ac930': 'survival',  # Change this part, Add your server name and the ptero identifier (example in https://panel.moonball.io/server/5426b68e "5426b68e" is the ID)
-                    '3a0eaf97': 'skyblock', '6e5ed2ac': 'duels', 'edeeff53': 'bedwars', '5a1b4028' : 'parkour', '5426b68e': 'bot'}
+    server_guide = {'fe5a4fe1': 'proxy', 'd1e50e31': 'limbo', 'e91b165c': 'auth', 'd0f6701c': 'lobby', '5d0ac930': 'survival',  # Change this part, Add your server name and the ptero identifier (example in https://panel.moonball.io/server/5426b68e "5426b68e" is the ID)
+                    '3a0eaf97': 'skyblock', '6e5ed2ac': 'duels', 'edeeff53': 'bedwars', '5426b68e': 'bot', '5a1b4028' : 'parkour'}
     headers = {"Authorization": f"Bearer {ptero_apikey}", "Accept": "application/json", "Content-Type": "application/json"}
     if servername == "all":
         servers = {}
@@ -920,12 +899,9 @@ async def server_status():
         ["5a1b4028", "parkour"],
         ["d1e50e31", "limbo"]
     ]
-
     global server_status  # Sets global variables for the server status
     server_status = {}
-    for i in range(len(guides)):
-        server_status[guides[i][1]] = await stats(guides[i][1])
-
+    for i in range(len(guides)): server_status[guides[i][1]] = await stats(guides[i][1])
 
 #
 #   Server Power backend
@@ -934,7 +910,7 @@ async def server_status():
 
 async def serverpower(servername, power, ctx):
     ptero_panel = "panel.moonball.io"  # Put your Ptero Panel's URL here
-
+    server_guide = {'proxy': 'fe5a4fe1', 'limbo': "d1e50e31", 'auth': 'e91b165c', 'lobby': 'd0f6701c', 'survival': '5d0ac930', 'skyblock': '3a0eaf97', 'duels': '6e5ed2ac', 'bedwars': 'edeeff53', 'bot': '5426b68e', 'parkour': '5a1b4028'}  # Change this part, Add your server name and the ptero identifier (example in https://panel.moonball.io/server/5426b68e "5426b68e" is the ID)
     st_server = servername
     placeholder = await status(st_server)  # Gets server info
     serverstatus = placeholder["state"]  # Gets its state
@@ -947,7 +923,7 @@ async def serverpower(servername, power, ctx):
     elif serverstatus == "stopping" and power == "stop": await ctx.reply(f"The server, {servername} is already stopping"); return "exception"
     elif servername == "bot": await ctx.reply(f"I can't do anything to myself."); return "exception"
 
-    serv_ips = {'proxy': '192.186.100.60:25565', 'auth': '192.168.100.70:25578', 'lobby': '192.168.100.70:25577','survival': '192.168.100.80:25575', 'skyblock': '192.168.100.70:25572','bedwars': '192.168.100.70:25571', 'duels': '192.168.100.70:25573', 'parkour': '192.168.100.70:25579'}  # Change this part, Add your server name and IP
+    serv_ips = {'proxy': '192.186.100.60:25565', 'limbo': '192.168.100.60:25566', 'auth': '192.168.100.70:25578', 'lobby': '192.168.100.70:25577','survival': '192.168.100.80:25575', 'skyblock': '192.168.100.70:25572','bedwars': '192.168.100.70:25571', 'duels': '192.168.100.70:25573', 'parkour': '192.168.100.70:25579'}  # Change this part, Add your server name and IP
     # server =     #Gets server player-info from API
     try: playerCount = MinecraftServer.lookup(serv_ips.get(servername)).query().players.online  # Try to get player info from server, only IF it is online
     except:playerCount = 0; await ctx.send("There was an error trying to get the player count of the server. The panel is perhaps down. Anyways ill continue with it being 0")
@@ -960,11 +936,6 @@ async def serverpower(servername, power, ctx):
             msg = await client.wait_for('message', check=lambda message: message.author == ctx.author)
             if msg.content == "yes" or "YES" or "Yes": await ctx.reply("Okay! As you wish, master. Here I begin!")
             else: await ctx.reply("You took to long to reply or did not say `yes`. I am aborting the power action on the server."); return
-
-    server_guide = {'proxy': 'fe5a4fe1', 'auth': 'e91b165c', 'lobby': 'd0f6701c', 'survival': '5d0ac930',
-                    # Change this part, Add your server name and the ptero identifier (example in https://panel.moonball.io/server/5426b68e "5426b68e" is the ID)
-                    'skyblock': '3a0eaf97', 'duels': '6e5ed2ac', 'bedwars': 'edeeff53', 'bot': '5426b68e', 'parkour': '5a1b4028', 'limbo': 'd1e50e31'}  # Change this part, Add your server name and the ptero identifier (example in https://panel.moonball.io/server/5426b68e "5426b68e" is the ID)
-
     url = f'https://{ptero_panel}/api/client/servers/{server_guide.get(servername)}/power'
     headers = {"Authorization": f"Bearer {ptero_apikey}", "Accept": "application/json", "Content-Type": "application/json"}
     if power == "start": payload = '{"signal": "start"}'
@@ -974,7 +945,6 @@ async def serverpower(servername, power, ctx):
     else: return "invalid_power"
 
     response = requests.request('POST', url, data=payload, headers=headers)
-    print(response.text)
     return response.text
 
 
@@ -985,18 +955,11 @@ async def serverpower(servername, power, ctx):
 
 async def sendcmd(ctx, servername, cmd):
     ptero_panel = "panel.moonball.io"  # Put your Ptero Panel's URL here
-
-    server_guide = {'proxy': 'fe5a4fe1', 'auth': 'e91b165c', 'lobby': 'd0f6701c', 'survival': '5d0ac930',
-                    # Change this part, Add your server name and the ptero identifier (example in https://panel.moonball.io/server/5426b68e "5426b68e" is the ID)
-                    'skyblock': '3a0eaf97', 'duels': '6e5ed2ac', 'bedwars': 'edeeff53', 'bot': '5426b68e', 'parkour': '5a1b4028', 'limbo': 'd1e50e31'}
-
+    server_guide = {'proxy': 'fe5a4fe1', 'limbo': "d1e50e31", 'auth': 'e91b165c', 'lobby': 'd0f6701c', 'survival': '5d0ac930','skyblock': '3a0eaf97', 'duels': '6e5ed2ac', 'bedwars': 'edeeff53', 'bot': '5426b68e', 'parkour': '5a1b4028'}  # Change this part, Add your server name and the ptero identifier (example in https://panel.moonball.io/server/5426b68e "5426b68e" is the ID)
     url = f'https://{ptero_panel}/api/client/servers/{server_guide[servername]}/command'
     headers = {"Authorization": f"Bearer {ptero_apikey}", "Accept": "application/json","Content-Type": "application/json"}
     payload = json.dumps({"command": f'{cmd}'})
-
-    try:
-        response = requests.request('POST', url, data=payload, headers=headers)
-        return "done"
+    try: response = requests.request('POST', url, data=payload, headers=headers); return "done"
     except: ctx.send("Invalid Request")
     print(response.text)
 
