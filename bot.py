@@ -17,7 +17,7 @@
 #
 
 
-import discord, requests, random, json, sqlite3, os, aiohttp, io
+import discord, requests, random, json, sqlite3, os, aiohttp, io, asyncio
 from discord.ext import commands  # Imports required Modules
 from mcstatus import MinecraftServer
 from dotenv import load_dotenv
@@ -33,7 +33,7 @@ load_dotenv(dotenv_path=dotenv_path)
 # Assigning Global Variables
 #
 
-bot_version = "Beta 0.4.0"              # Bot Version
+bot_version = "Beta 0.4.1"              # Bot Version
 prefix = "+"                            # Bot Prefix
 ptero_apikey = os.getenv("PTERO_KEY")   # Getting Pterodactyl API Key
 serv_ips = {'proxy': '192.186.100.60:25565', 'limbo': '192.168.100.60:25566', 'auth': '192.168.100.60:25567',
@@ -52,7 +52,6 @@ embed_icon = "https://media.discordapp.net/attachments/951055432833695767/972792
 
 client = commands.Bot(command_prefix=commands.when_mentioned_or(prefix), intents=intents,
                       help_command=None, case_insensitive=True)  # Setting prefix
-
 
 @client.event
 async def on_ready():  # Stuff the bot does when it starts
@@ -113,6 +112,7 @@ async def playercount(ctx, st_server):
         ctx.send("Playercount for Proxy is not available.")
     elif not st_server.lower() in ["limbo", "auth", "lobby", "survival", "bedwars", "duels", "skyblock", "prison", "parkour"]:
         return await ctx.reply(f"`{st_server.capitalize()}` is not a valid server. `{prefix}help playerlist` to learn more!")
+    msg = await ctx.reply(embed=discord.Embed(title=f"{st_server.capitalize()} Server Status", description="*Server Status is loading*\nPlease hold on!", color=embed_color))
     players = MinecraftServer.lookup(serv_ips.get(st_server)).query().players.names
     playerCount = MinecraftServer.lookup(serv_ips.get(st_server)).query().players.online
     pc_embed = discord.Embed(title=f"Player List", description=f"Online player list for the server {st_server.capitalize()}.\n Requested by {ctx.author.name}#{ctx.author.discriminator}", color=embed_color, url="https://moonball.io")
@@ -120,7 +120,7 @@ async def playercount(ctx, st_server):
     pc_embed.add_field(name="Player Count", value=playerCount, inline=False)
     if playerCount != 0:
         pc_embed.add_field(name="Players", value='\n'.join(players), inline=False)
-    await ctx.reply(embed=pc_embed)
+    await msg.edit(embed=pc_embed)
     await logger("i", f"{ctx.author.name}#{ctx.author.discriminator} used Player List Command for server {st_server.capitalize()}", "info", f"{ctx.author.name}#{ctx.author.discriminator} used Player-Count Command for server {st_server.capitalize()}")
 
 
@@ -396,8 +396,8 @@ async def poll_bothelp(ctx):
     if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
     embed = discord.Embed(title="Help Command - Poll", url="https://moonball.io",description="This is the Help category for the `Poll` command.", color=embed_color)
     embed.set_author(name=embed_header, icon_url=embed_icon)
-    embed.add_field(name="Description", value=f"The `Poll` Command Sends a multiple option poll with upto 4 options",inline=False)
-    embed.add_field(name="Features",value=f"The Poll Command sends a poll with the user's input with upto 4 reactions/options. It has a simple syntax - \n```ini\n{prefix}poll [number of options] | [Your poll Text here]```\nUse `|` to seperate the 2 arguments. Say `nl` within the poll to put the proceeding text in the next line.",inline=False)
+    embed.add_field(name="Description", value=f"The `Poll` Command Sends a multiple option poll with up to 4 options",inline=False)
+    embed.add_field(name="Features",value=f"The Poll Command sends a poll with the user's input with up to 4 reactions/options. It has a simple syntax - \n```ini\n{prefix}poll [number of options] | [Your poll Text here]```\nUse `|` to seperate the 2 arguments. Say `nl` within the poll to put the proceeding text in the next line.",inline=False)
     embed.add_field(name="Version introduced in", value="0.2.3", inline=False)
     embed.add_field(name="Aliases", value="```ini\n[cpoll, spoll, createpoll, sendpoll]```", inline=False)
     embed.set_footer(text=embed_footer)
@@ -509,7 +509,7 @@ async def permlevel_admin(ctx):  # Help password
     # Base Admin-Help command embed
     bothelp = discord.Embed(title="Admin Help - Permission Level", url="https://moonball.io", description=f"For permission level hierarchy list, do `{prefix}admin permlist`\n Use `{prefix}admin setlvl [@mention] [level]` or `{prefix}admin getlvl [@mention]` to execute the command.\nSet/Get the permission level of a user", color=embed_color)
     bothelp.add_field(name="Description", value=f"This command can set or get the permission level of a user. Permission levels are used to give specific command access to different levels of permissions a user can have. Permissions vary between `-1` and `5`, -1 disabling access to all commands and 5 giving access to all.", inline=True)
-    bothelp.add_field(name="Features",value=f"Manage usage of commands easilly with one command giving a permission level to a user",inline=False)
+    bothelp.add_field(name="Features",value=f"Manage usage of commands easily with one command giving a permission level to a user",inline=False)
     bothelp.add_field(name="Syntax", value=f"```ini\n{prefix}admin setlvl [@mention] [level]\n{prefix}admin getlvl [@mention]```", inline=False)
     bothelp.set_footer(text=embed_footer)
     bothelp.set_author(name=embed_header, icon_url=embed_icon)
@@ -723,7 +723,7 @@ async def sendcmd_admin(ctx, *data):    # Send Command Admin Command
     embed.add_field(name="Operation Successful!", value=f"Successfully Sent the Command. Issued by {ctx.author.name}#{ctx.author.discriminator} \n \n**Server** - `{data[0]}` \n **Command** - `{data[1]}`",inline=False)
     embed.set_footer(text=embed_footer)
     await ctx.reply(embed=embed)
-    await embed_log.send(embed=embed)  # Sending it to the Logs channel
+    await embed_log.send(embed=embed)
     await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} sent a command to `{data[0]}`', "admin", f'{ctx.author.name}#{ctx.author.discriminator} sent a command to `{data[0]}\nCommand - ```ini\n{data[1]}```')
 
 
@@ -743,7 +743,6 @@ async def take_money_admin(ctx, *data):  # Take Money Admin Command
     embed.add_field(name="Operation Successful!", value=f"Successfully took {data[1]} from {data[0]} \n \n**User** - `{data[0]}` \n **Amount** - `{data[1]}`",inline=False)
     embed.set_footer(text=embed_footer)
     await ctx.reply(embed=embed)
-    await embed_log.send(embed=embed)  # Sending it to the Logs channel
     await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} took ${data[1]} from {data[0]}', "admin", f'{ctx.author.name}#{ctx.author.discriminator} took ${data[1]} from {data[0]}')
 
 @admin.command(aliases=['givemoney', 'give', 'give_money'])
@@ -762,7 +761,6 @@ async def give_money_admin(ctx, *data):  # Take Money Admin Command
     embed.add_field(name="Operation Successful!", value=f"Successfully gave {data[1]} from {data[0]} \n \n**User** - `{data[0]}` \n **Amount** - `{data[1]}`",inline=False)
     embed.set_footer(text=embed_footer)
     await ctx.reply(embed=embed)
-    await embed_log.send(embed=embed)  # Sending it to the Logs channel
     await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} gave ${data[1]} to {data[0]}', "admin", f'{ctx.author.name}#{ctx.author.discriminator} gave ${data[1]} to {data[0]}')
 
 
@@ -793,13 +791,39 @@ async def changepw_admin(ctx, *data):   # Change Password Command
     await embed_log.send(embed=embed)  # Sending it to the Logs channel
     await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} changed the password of {data[0]}', "admin", f'{ctx.author.name}#{ctx.author.discriminator} changed the password of {data[0]}')
 
+# Coming Soon!
+"""
+# Un-Register User
+@admin.command(aliases=['unreg', 'ureg', 'unregister'])
+async def unreg_admin(ctx, *data):   # Change Password Command
+    if await checkperm(ctx, 4): return
+    if len(data[0]) <= 3 or len(data[0]) >= 16:
+        await ctx.send("Invalid Username | Username must be between 3 and 16 characters")
+        return "invalid_username"
+    # Format = +admin changepw | username | password
+    cmd = f"authme unreg {data[0]}"
+    try:
+        p = await sendcmd(ctx, "auth", cmd)
+    except:
+        await ctx.reply("There was a error in sending the command")
+        return
+    if p != "done": return
+    embed = discord.Embed(title="Admin - Change Password", url="https://moonball.io", color=embed_color)
+    embed.set_author(name=embed_header, icon_url=embed_icon)
+    embed.add_field(name="Operation Successful!",value=f"Successfully Unregistered User. Issued by {ctx.author.name}#{ctx.author.discriminator} \n \n**Player** - `{data[0]}`",inline=False)
+    embed.set_footer(text=embed_footer)
+    await ctx.reply(embed=embed)
+    await embed_log.send(embed=embed)  # Sending it to the Logs channel
+    await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} Unregistered {data[0]}', "admin", f'{ctx.author.name}#{ctx.author.discriminator} unregistered {data[0]}')
+"""
+
 
 
 # Power Commands
 @admin.command(aliases=['startserver', 'serverstart', 'ss', 'start'])
 async def start_admin(ctx, *data):  # Start Server Command
     if await checkperm(ctx, 2): return
-    data = " ".join(data).split()  # Input Splitter
+    msg = await ctx.reply(embed=discord.Embed(title=f"{data[0].capitalize()} Power", description="*Server Power is being changed*\nPlease hold on!", color=embed_color))
     valid_names = ["proxy", "limbo", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot", "parkour"]
     if data[0] not in valid_names:
         await ctx.reply(f"Error : Invalid Server Name. Use `{prefix}admin css` to learn more!")
@@ -814,12 +838,13 @@ async def start_admin(ctx, *data):  # Start Server Command
     embed.set_author(name=embed_header, icon_url=embed_icon)
     embed.add_field(name=f'Operation Successful!', value=f'Successfully Started the {data[0].capitalize()} Server!', inline=False)
     embed.set_footer(text=embed_footer)
-    await ctx.reply(embed=embed)
+    await msg.edit(embed=embed)
     await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} started server {data[0]}', "admin", f'{ctx.author.name}#{ctx.author.discriminator} started server {data[0]}')
 
 @admin.command(aliases=['stopserver', 'serverstop', 'sts', 'stop'])
 async def stop_admin(ctx, *data):   # Stop Server Command
     if await checkperm(ctx, 3): return
+    msg = await ctx.reply(embed=discord.Embed(title=f"{data[0].capitalize()} Power", description="*Server Power is being changed*\nPlease hold on!", color=embed_color))
     valid_names = ["proxy", "limbo", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot", "parkour"]
     if data[0] not in valid_names:
         await ctx.reply(f"Error : Invalid Server Name. Use `{prefix}admin css` to learn more!")
@@ -834,12 +859,13 @@ async def stop_admin(ctx, *data):   # Stop Server Command
     embed.set_author(name=f"{embed_header}")
     embed.add_field(name=f'Operation Successful!', value=f'Successfully Stopped the {data[0].capitalize()} Server!',inline=False)
     embed.set_footer(text=f"{embed_footer}")
-    await ctx.reply(embed=embed)
+    await msg.edit(embed=embed)
     await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} stopped server {data[0]}', "admin", f'{ctx.author.name}#{ctx.author.discriminator} stopped server {data[0]}')
 
 @admin.command(aliases=['restartserver', 'serverrestart', 'rs', 'restart'])
 async def restart_admin(ctx, *data): # Restart Server Command
     if await checkperm(ctx, 2): return
+    msg = await ctx.reply(embed=discord.Embed(title=f"{data[0].capitalize()} Power", description="*Server Power is being changed*\nPlease hold on!", color=embed_color))
     valid_names = ["proxy", "limbo", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot", "parkour"]
     if data[0] not in valid_names:
         await ctx.reply(f"Error : Invalid Server Name. Use `{prefix}admin css` to learn more!")
@@ -853,12 +879,13 @@ async def restart_admin(ctx, *data): # Restart Server Command
     embed.set_author(name=embed_header, icon_url=embed_icon)
     embed.add_field(name=f'Operation Successful!',value=f'Successfully Restarted the {data[0].capitalize()} Server!', inline=False)
     embed.set_footer(text=embed_footer)
-    await ctx.reply(embed=embed)
+    await msg.edit(embed=embed)
     await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} restarted server {data[0]}', "admin", f'{ctx.author.name}#{ctx.author.discriminator} restarted server {data[0]}')
 
 @admin.command(aliases=['killserver', 'serverkill', 'sk', 'kill'])
 async def kill_admin(ctx, *data): # Kill Server Command
     if await checkperm(ctx, 3): return
+    msg = await ctx.reply(embed=discord.Embed(title=f"{data[0].capitalize()} Power", description="*Server Power is being changed*\nPlease hold on!", color=embed_color))
     valid_names = ["proxy", "limbo", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot", "parkour"]
     if data[0] not in valid_names:
         await ctx.reply(f"Error : Invalid Server Name. Use `{prefix}admin css` to learn more!")
@@ -873,7 +900,7 @@ async def kill_admin(ctx, *data): # Kill Server Command
     killembed.set_author(name=embed_header, icon_url=embed_icon)
     killembed.add_field(name=f'Operation Successful!', value=f"Successfully Killed the {data[0].capitalize()} Server!", inline=False)
     killembed.set_footer(text=embed_footer)
-    await ctx.reply(embed=killembed)
+    await msg.edit(embed=killembed)
     await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} killed server {data[0]}', "admin", f'{ctx.author.name}#{ctx.author.discriminator} killed server {data[0]}')
 
 
@@ -899,7 +926,6 @@ async def resetcount(ctx, kw, name):  # Counter Add Function
 @admin.command(aliases=['reset', 'resetcount', "rc"])
 async def reset_admin(ctx, *data): # Reset Counter Command
     if await checkperm(ctx, 5): return
-    data = " ".join(data).split()  # Input Splitter
     if data[0] == "all":
         await resetcount(ctx, "all", "all")
     elif data[0] == "suggestion" or data[0] == "s":
@@ -968,9 +994,6 @@ async def get_level(ctx): # Get Level Command
 # async def connect(ctx):
 #     pass
 
-
-
-#
 #
 #   Reusable Functions
 #
@@ -1001,6 +1024,7 @@ async def version_embed(ctx):
 async def serverstatus(ctx, st_server):  # Server Status front end
     if await checkperm(ctx, 0): return
     server = MinecraftServer.lookup(serv_ips.get(st_server.lower()))  # Gets server player-info from API
+    msg = await ctx.reply(embed=discord.Embed(title=f"{st_server.capitalize()} Server Status", description="*Server Status is loading*\nPlease hold on!", color=embed_color))
     try: placeholder = await status(st_server.lower())  # Gets server info from Pterodactyl API
     except:
         await ctx.reply("There was an error while trying to get server info, the panel is perhaps down. Please ping the Staff")
@@ -1011,7 +1035,7 @@ async def serverstatus(ctx, st_server):  # Server Status front end
         server_status = "Offline <:offline:915916197797715979>"
     elif server_status == "running":
         server_status = "Online <:online:915916197973864449>"
-        if not st_server == "proxy" or st_server == "bot":
+        if st_server != "proxy" or "bot" or "auth" or "lobby" or "limbo":
             try:
                 playerCount = server.query().players.online
             except:
@@ -1032,7 +1056,8 @@ async def serverstatus(ctx, st_server):  # Server Status front end
     serverembed.add_field(name="<:disk_bot:952580881237803028> Disk Space", value=f'{placeholder["spaceOccupied"]}',inline=False)
     serverembed.add_field(name="<:uptime_bot:951055640967675945> Uptime", value=f'{placeholder["uptime"]}',inline=False)
     serverembed.set_footer(text=embed_footer)
-    await ctx.reply(embed=serverembed)  # Sends the embed
+    await msg.edit(embed=serverembed)
+    # await ctx.reply(embed=serverembed)  # Sends the embed
     await logger("i", f'Server Status : Sent Server {st_server.capitalize()} embed to message of {ctx.author.name}#{ctx.author.discriminator}', "info", f"Sent Server {st_server.capitalize()} embed to message of {ctx.author.name}#{ctx.author.discriminator}")
 
 async def logger(cat, printmsg, logtype, logmsg):  # Logs to Log channel
@@ -1210,25 +1235,31 @@ async def serverpower(servername, power, ctx):
         await ctx.reply(f"I can't do anything to myself.")
         return "exception"
 
+    playerCount = 0
     # server =     #Gets server player-info from API
     try:
         playerCount = MinecraftServer.lookup(serv_ips.get(servername)).query().players.online
-        # Try to get player info from server, only IF it is online
     except:
-        playerCount = 0
         await ctx.send("There was an error trying to get the player count of the server. The panel is perhaps down. Anyways ill continue with it being 0")
+
 
     if power in ("stop", "kill", "restart"):
         if playerCount != 0:
-            # await ctx.reply(f"There are {playerCount} online")
-            await ctx.reply("There is more than one person online on that server. Are you sure you want to proceed with the distructive action, while the players are online. If you do wish to, say `yes`")
-            # await ctx.send(type=InteractionType.ChannelMessageWithSource, content="There is more than one person online on that server. Are you sure you want to proceed with the distructive action, while the players are online", components= Button(style=ButtonStyle.red, label="Confirm", custom_id="confirm_power_action")])
-            msg = await client.wait_for('message', check=lambda message: message.author == ctx.author)
-            if msg.content == "yes" or "YES" or "Yes":
+            sent_message = await ctx.reply(f"There are {playerCount} Player(s) Online!. Are you sure you want to proceed with the destructive action? If you do wish to, say `yes`\n*Waiting for a Response...*")
+            try:
+                res = await client.wait_for("message",
+                check=lambda x: x.channel.id == ctx.channel.id
+                                and ctx.author.id == x.author.id
+                                and x.content.lower() == "yes", timeout=30)
+            except asyncio.TimeoutError:
+                await sent_message.edit("You took too long to respond or didn't say `yes`. The action has been cancelled.")
+                return
+
+            if res.content.lower() == "yes":
                 await ctx.reply("Okay! As you wish, master. Here I begin!")
             else:
-                await ctx.reply("You took to long to reply or did not say `yes`. I am aborting the power action on the server.")
                 return
+
     url = f'https://{ptero_panel}/api/client/servers/{server_guide.get(servername)}/power'
     headers = {"Authorization": f"Bearer {ptero_apikey}", "Accept": "application/json", "Content-Type": "application/json"}
     if power == "start":
