@@ -1,7 +1,16 @@
-import discord, hashlib, mysql.connector, sqlite3
+import discord, hashlib, mysql.connector, sqlite3, os
 from discord.ext import commands
 from bot import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon    # Import bot variables
-from bot import logger, checkperm, checkcommandchannel, is_connected, get_mc, sendcmd                                   # Import bot functions
+from bot import logger, checkperm, checkcommandchannel, is_connected, get_mc, sendcmd
+from dotenv import load_dotenv
+from pathlib import Path
+
+load_dotenv(dotenv_path=Path('./data/.env'))
+db_user = os.getenv("DB_USER")
+db_pw = os.getenv("DB_PW")
+
+
+# Import bot functions
 
 
 class Sha256:
@@ -59,8 +68,8 @@ class MC(commands.Cog):
         try:    # Try to connect to the Authme MYSQL database
             mydb = mysql.connector.connect(
                 host="192.168.100.70",
-                user="x",
-                password="x",
+                user=db_user,
+                password=db_pw,
                 database='s21_authme'
             )
         except mysql.connector.Error as err:    # If there is an error
@@ -101,6 +110,7 @@ class MC(commands.Cog):
         con_embed.add_field(name="Discord", value=f"`{ctx.author.id}`", inline=True)
         await dm.edit(embed=con_embed)
         await msg.edit(embed=con_embed)   # Edit the message to show the success message
+        await logger("m", f"{ctx.author.name}#{ctx.author.discriminator} connected their Minecraft account to their Discord account.", "Minecraft", f"{ctx.author.name}#{ctx.author.discriminator} ({ctx.author.id}) connected their Minecraft account to their Discord account.")
 
 
 
@@ -196,3 +206,5 @@ class MC(commands.Cog):
 
 def setup(client):
     client.add_cog(MC(client))
+
+

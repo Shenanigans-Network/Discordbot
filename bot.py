@@ -401,23 +401,24 @@ async def sendcmd(ctx, servername, cmd):
 #
 #   Get Console
 #
-async def getconsole(ctx, servername):
-    ptero_panel = "panel.moonball.io"  # Put your Pterodactyl Panel's URL here
-    server_guide = {'proxy': 'fe5a4fe1', 'limbo': "d1e50e31", 'auth': 'e91b165c', 'lobby': 'b7b7c4b3',
-                    'survival': '777f305b', 'skyblock': '33cbad29', 'duels': '04cc6bb3', 'bedwars': '583e6fbc',
-                    'bot': '5426b68e', 'parkour': '10770164',
-                    'prison': 'a321d8fa'}  # Change this part, Add your server name and the ptero identifier (example in https://panel.moonball.io/server/5426b68e "5426b68e" is the ID)
-    url = f'https://{ptero_panel}/api/client/servers/{server_guide[servername]}/websocket'
 
-
-    headers = {
-        "Authorization": f"Bearer {ptero_apikey}",
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-    }
-    payload = {"event":"send logs","args":[null]}
-    response = requests.request('GET', url, data=payload, headers=headers)
-    print(response.text)
+# async def getconsole(ctx, servername):
+#     ptero_panel = "panel.moonball.io"  # Put your Pterodactyl Panel's URL here
+#     server_guide = {'proxy': 'fe5a4fe1', 'limbo': "d1e50e31", 'auth': 'e91b165c', 'lobby': 'b7b7c4b3',
+#                     'survival': '777f305b', 'skyblock': '33cbad29', 'duels': '04cc6bb3', 'bedwars': '583e6fbc',
+#                     'bot': '5426b68e', 'parkour': '10770164',
+#                     'prison': 'a321d8fa'}  # Change this part, Add your server name and the ptero identifier (example in https://panel.moonball.io/server/5426b68e "5426b68e" is the ID)
+#     url = f'https://{ptero_panel}/api/client/servers/{server_guide[servername]}/websocket'
+#
+#
+#     headers = {
+#         "Authorization": f"Bearer {ptero_apikey}",
+#         "Accept": "application/json",
+#         "Content-Type": "application/json",
+#     }
+#     payload = {"event":"send logs","args":[null]}
+#     response = requests.request('GET', url, data=payload, headers=headers)
+#     print(response.text)
 
 
 #
