@@ -1,4 +1,4 @@
-import discord, random, aiohttp, io
+import discord, random, aiohttp, io, asyncio
 from discord.ext import commands
 from bot import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon    # Import bot variables
 from bot import checkcommandchannel, checkperm, logger, countadd                                     # Import functions
@@ -153,6 +153,15 @@ class Fun(commands.Cog):
         await ctx.reply(f"Your Suggestion was sent! Check <#960203053103972403> to see how its doing!")
         print(f"Sent {ctx.author.name}'s suggestion to the suggestion channel!")
 
+
+    # @commands.command(aliases=['cleardms'])
+    # async def cleardm(self, ctx):
+    #     messages_to_remove = 1000
+    #
+    #     async for message in self.client.get_user(ctx.user.id).history(limit=messages_to_remove):
+    #         if message.author.id == self.client.user.id:
+    #             await message.delete()
+    #             await asyncio.sleep(0.5)
 
 def setup(client):
     client.add_cog(Fun(client))

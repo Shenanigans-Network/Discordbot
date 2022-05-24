@@ -55,7 +55,7 @@ class Listeners(commands.Cog):
         welcome_embed.set_image(url="https://media.discordapp.net/attachments/896348336972496936/952940944175554590/ezgif-1-e6eb713fa2.gif")
         welcome_embed.set_footer(text=embed_footer)
         await welcome_channel.send(embed=welcome_embed)
-        role = discord.utils.get(member.server.roles, id="960196710766895134")
+        role = self.client.get_role(960196710766895134)
         await self.client.add_roles(member, role)
         await logger("i", f"Sent Welcome Embed to {member.name}#{member.discriminator}", "info",f"Sent Welcome Embed to {member.name}#{member.discriminator}")
 

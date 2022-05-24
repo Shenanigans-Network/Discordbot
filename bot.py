@@ -33,7 +33,7 @@ load_dotenv(dotenv_path=Path('data/.env'))
 # Assigning Global Variables
 #
 
-bot_version = "Beta 0.4.2"              # Bot Version
+bot_version = "Beta 0.4.3"              # Bot Version
 prefix = "+"                            # Bot Prefix
 ptero_apikey = os.getenv("PTERO_KEY")   # Getting Pterodactyl API Key
 serv_ips = {'proxy': '192.186.100.60:25565', 'limbo': '192.168.100.60:25566', 'auth': '192.168.100.60:25567',
@@ -104,7 +104,7 @@ async def ip_embed(ctx):
     ipembed.set_author(name=embed_header, icon_url=embed_icon)
     ipembed.add_field(name="Java ", value="play.moonball.io", inline=True)
     ipembed.add_field(name="Bedrock ", value="play.moonball.io (Port 25565)", inline=False)
-    ipembed.set_footer(text="Maybe check the pins next time? eh.")
+    ipembed.set_footer(text=embed_footer)
     await ctx.reply(embed=ipembed)
     await logger("i", f'Sent IP Embed to message of {ctx.author.name}#{ctx.author.discriminator}', "info", f"Sent IP embed to message of {ctx.author.name}#{ctx.author.discriminator}")
 
@@ -160,6 +160,27 @@ async def serverstatus(ctx, st_server):  # Server Status front end
     await msg.edit(embed=server_embed)
     await logger("i",f'Server Status : Sent Server {st_server.capitalize()} embed to message of {ctx.author.name}#{ctx.author.discriminator}',"info",f"Sent Server {st_server.capitalize()} embed to message of {ctx.author.name}#{ctx.author.discriminator}")
 
+async def is_connected(disc_id):
+    con = sqlite3.connect('./data/data.db')
+    c = con.cursor()
+    c.execute(f"SELECT mc_username FROM connection WHERE disc_id = '{disc_id}';")
+    result = c.fetchone()
+    if result:
+        return False
+    else:
+        return True
+#     False = Connected
+#     True = Not Connected
+
+async def get_mc(disc_id):
+    con = sqlite3.connect('./data/data.db')
+    c = con.cursor()
+    c.execute(f"SELECT mc_username FROM connection WHERE disc_id = '{disc_id}';")
+    result = c.fetchone()
+    if result:
+        return result[0]
+    else:
+        return "not connected"
 
 
 async def logger(cat, printmsg, logtype, logmsg):  # Logs to Log channel
@@ -318,13 +339,15 @@ async def serverpower(servername, power, ctx):
 
     playerCount = 0
     # server =     #Gets server player-info from API
-    try:
-        playerCount = MinecraftServer.lookup(serv_ips.get(servername)).query().players.online
-    except:
-        await ctx.send("There was an error trying to get the player count of the server. The panel is perhaps down. Anyways ill continue with it being 0")
+    if power in ["stop", "restart", "kill"]:
+        if not servername in ["proxy", "auth", "limbo", "lobby"]:
+            try:
+                playerCount = MinecraftServer.lookup(serv_ips.get(servername)).query().players.online
+            except:
+                await ctx.send("There was an error trying to get the player count of the server. The panel is perhaps down. Anyways ill continue with it being 0")
 
 
-    if power in ("stop", "kill", "restart"):
+    if power in ["stop", "kill", "restart"]:
         if playerCount != 0:
             sent_message = await ctx.reply(f"There are {playerCount} Player(s) Online!. Are you sure you want to proceed with the destructive action? If you do wish to, say `yes`\n*Waiting for a Response...*")
             try:
@@ -374,6 +397,28 @@ async def sendcmd(ctx, servername, cmd):
     except:
         ctx.send("Invalid Request")
     print(response.text)
+
+#
+#   Get Console
+#
+async def getconsole(ctx, servername):
+    ptero_panel = "panel.moonball.io"  # Put your Pterodactyl Panel's URL here
+    server_guide = {'proxy': 'fe5a4fe1', 'limbo': "d1e50e31", 'auth': 'e91b165c', 'lobby': 'b7b7c4b3',
+                    'survival': '777f305b', 'skyblock': '33cbad29', 'duels': '04cc6bb3', 'bedwars': '583e6fbc',
+                    'bot': '5426b68e', 'parkour': '10770164',
+                    'prison': 'a321d8fa'}  # Change this part, Add your server name and the ptero identifier (example in https://panel.moonball.io/server/5426b68e "5426b68e" is the ID)
+    url = f'https://{ptero_panel}/api/client/servers/{server_guide[servername]}/websocket'
+
+
+    headers = {
+        "Authorization": f"Bearer {ptero_apikey}",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+    }
+    payload = {"event":"send logs","args":[null]}
+    response = requests.request('GET', url, data=payload, headers=headers)
+    print(response.text)
+
 
 #
 # Permission Level System

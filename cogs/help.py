@@ -194,8 +194,8 @@ class Help(commands.Cog):
         await logger("h", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}", "help",f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}")  # Logs to Log channel
 
 
-    @bothelp.group(aliases=['helpcmd'])
-    async def changecmd_admin(self, ctx):  # Help sendcmd
+    @bothelp.group(aliases=['helpcmd', 'sendcmd'])
+    async def sendcmd_admin(self, ctx):  # Help sendcmd
         if await checkperm(ctx, 0): return
         if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
         # Base Admin-Help command embed
@@ -204,7 +204,7 @@ class Help(commands.Cog):
         bothelp.add_field(name="Description", value=f"This command can send a command to the mentioned server",inline=True)
         bothelp.add_field(name="Features",value=f"Send a in-game command to any mentioned server here on Discord, using a conveniently easy command and easy syntax!",inline=False)
         bothelp.add_field(name="Valid Servers",value="```ini\n[proxy, limbo, auth, lobby, survival, skyblock, duels, bedwars, parkour]```",inline=False)
-        bothelp.add_field(name="Syntax", value=f"```ini\n{prefix}admin cmd server | command here!```", inline=False)
+        bothelp.add_field(name="Syntax", value=f"```ini\n{prefix}admin cmd [server] | [command here]```", inline=False)
         bothelp.set_footer(text=embed_footer)
         await ctx.reply(embed=bothelp)
         await logger("h", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}", "help",f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}")  # Logs to Log channel

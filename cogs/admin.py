@@ -315,8 +315,37 @@ class Admin(commands.Cog):
 
 
     #
+    #   == Connection Commands ==
+    #
+
+    @admin.command(aliases=['discon'])
+    async def disconnect(self, ctx, *data):
+        if await checkperm(ctx, 4): return
+        msg = await ctx.reply(embed=discord.Embed(title="Disconnect MC Account", description=f"*Disconnecting Account, Please hold on...*", color=embed_color))
+        if len(data) != 1:
+            await msg.edit(embed=discord.Embed(title="Disconnect MC Account", description="**There was an Error!**\nYou didn't provide the correct arguments.", color=discord.colour.Color.red()))
+            return
+        username = data[0].lower()
+        con = sqlite3.connect('./data/data.db')
+        c = con.cursor()
+        c.execute(f"SELECT disc_id FROM connection WHERE mc_username = '{username.lower()}';")
+        result = c.fetchone()
+        if not result:
+            await msg.edit(embed=discord.Embed(title="Disconnect MC Account", description="**There was an Error!**\nYou didn't connect your Minecraft account to your Discord account.", color=discord.colour.Color.red()))
+            return
+        c.execute(f"DELETE FROM connection WHERE mc_username = '{username.lower()}';")
+        con.commit()
+        con.close()
+        discon_embed = discord.Embed(title="Disconnect MC Account", description=f"**Success!**\nThe Minecraft account has been disconnected from the Discord account.", color=embed_color)
+        discon_embed.set_footer(text=embed_footer)
+        discon_embed.set_author(name=embed_header, icon_url=embed_icon)
+        discon_embed.add_field(name="Username", value=f"`{username}`", inline=True)
+        await ctx.send(embed=discon_embed)
+
+    #
     #   == Other ==
     #
+
     @admin.command(aliases=['reset', 'resetcount', "rc"])
     async def reset_admin(self, ctx, *data):  # Reset Counter Command
         if await checkperm(ctx, 5): return
