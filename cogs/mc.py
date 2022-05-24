@@ -59,8 +59,8 @@ class MC(commands.Cog):
         try:    # Try to connect to the Authme MYSQL database
             mydb = mysql.connector.connect(
                 host="192.168.100.70",
-                user="u21_Pt0fCMA0jM",
-                password="rDBZkLEHw.^8u7HN+u0BqoJ5",
+                user="x",
+                password="x",
                 database='s21_authme'
             )
         except mysql.connector.Error as err:    # If there is an error
