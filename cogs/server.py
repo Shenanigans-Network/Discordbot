@@ -5,6 +5,7 @@ from bot import prefix, embed_header, embed_footer, embed_color, bot_version, em
 from bot import checkcommandchannel, checkperm, logger, serverstatus, status, version_embed, ip_embed   # Import bot functions
 
 class Server(commands.Cog):
+    """Commands that provide information about the Server meant for general users"""
     def __init__(self, client):
         self.client = client
         self.embed_color = embed_color
@@ -24,7 +25,7 @@ class Server(commands.Cog):
 
 
     # Bot Ping Command
-    @commands.command(aliases=['memory', 'mem', 'cpu', 'ram', 'lag', 'ping'])  # Bot Stats Command
+    @commands.command(aliases=['memory', 'mem', 'cpu', 'ram', 'lag', 'ping'], help=f"View resource usage and other info of the bot.")  # Bot Stats Command
     async def stats(self, ctx):
         if await checkperm(ctx, 0): return
         if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
@@ -36,11 +37,11 @@ class Server(commands.Cog):
         stats_embed.add_field(name='<:ram_bot:951055641332563988> Memory Usage', value=f'{server_info["memUsage"]}',inline=False)
         stats_embed.add_field(name='<:uptime_bot:951055640967675945> Uptime', value=f'{server_info["uptime"]}',inline=False)
         await ctx.reply(embed=stats_embed)
-        await logger("i", f'Sent bot Stats to message of {ctx.author.name}#{ctx.author.discriminator}', "info", f"Sent Stats embed to message of {ctx.author.name}#{ctx.author.discriminator}")
+        await logger("s", f'Sent bot Stats to message of {ctx.author.name}#{ctx.author.discriminator}', "server", f"Sent Stats embed to message of {ctx.author.name}#{ctx.author.discriminator}")
 
 
     # Server Playercount Command
-    @commands.command(aliases=["players"])
+    @commands.command(aliases=["players"], help=f"View the amount of players on the server.\n Syntax - ```ini\n{prefix}players [servername]```")  # Playercount Command
     async def playercount(self, ctx, st_server):
         if await checkperm(ctx, 0): return
         if await checkcommandchannel(ctx): return  # Checks if command was used in a valid channel
@@ -59,55 +60,32 @@ class Server(commands.Cog):
         if player_count != 0:
             pc_embed.add_field(name="Players", value='\n'.join(player_list), inline=False)
         await msg.edit(embed=pc_embed)
-        await logger("i",f"{ctx.author.name}#{ctx.author.discriminator} used Player List Command for server {st_server.capitalize()}","info",f"{ctx.author.name}#{ctx.author.discriminator} used Player-Count Command for server {st_server.capitalize()}")
+        await logger("s",f"{ctx.author.name}#{ctx.author.discriminator} used Player List Command for server {st_server.capitalize()}","server",f"{ctx.author.name}#{ctx.author.discriminator} used Player-Count Command for server {st_server.capitalize()}")
 
 
-    @commands.command(aliases=['bedrock', 'java'])  # The IP command
-    async def ip(self, ctx): await ip_embed(ctx)
+    @commands.command(name="ip", aliases=['bedrock', 'java'], help="Get the IP of the server.")  # The IP command
+    async def getip(self, ctx): await ip_embed(ctx)
 
-    @commands.command()
-    async def version(self, ctx): await version_embed(ctx)
+    @commands.command(name='version', help="Get the version of the server.")
+    async def getversion(self, ctx): await version_embed(ctx)
 
     # This part is making aliases for each server's status. Just copy-paste of code, but with server-name changed
-    @commands.command(aliases=['proxy', 'velocity'])  # Status cmd for proxy
-    async def statusproxy(self, ctx):
-        await serverstatus(ctx, "proxy")
 
-    @commands.command(aliases=['limbo'])  # Status cmd for limbo
-    async def statuslimbo(self, ctx):
-        await serverstatus(ctx, "limbo")
+    @commands.command(name="status", aliases=['status-all'], help=f"Sends current status of a specific server. Syntax - \n```ini\n{prefix}status [servername]```")  # Status cmd for all servers
+    async def status(self, ctx, *data):
 
-    @commands.command(aliases=['auth', 'authserver'])  # Status cmd for auth
-    async def statusauth(self, ctx):
-        await serverstatus(ctx, "auth")
+        servers = ["proxy", "limbo", "auth", "lobby", "survival", "bedwars", "duels", "skyblock", "parkour", "prison"]
+        if not len(data) == 1:
+            await ctx.reply(f"Expected only 1 argument, got `{len(data)}`")
+            return
+        servername = data[0].lower()
+        if servername not in servers:
+            await ctx.send("Server not found. Please use one of the following: `proxy`, `limbo`, `auth`, `lobby`, `survival`, `bedwars`, `duels`, `skyblock`, `parkour`, `prison`")
+            return
 
-    @commands.command(aliases=['lobby', 'hub'])  # Status cmd for lobby
-    async def statuslobby(self, ctx):
-        await serverstatus(ctx, "lobby")
+        await serverstatus(ctx, servername)
 
-    @commands.command(aliases=['survival'])  # Status cmd for survival
-    async def statussurvival(self, ctx):
-        await serverstatus(ctx, "survival")
 
-    @commands.command(aliases=['bedwars', 'bedwar', 'bw'])  # Status cmd for Bedwars
-    async def statusbedwars(self, ctx):
-        await serverstatus(ctx, "bedwars")
-
-    @commands.command(aliases=['duels', 'duel'])  # Status cmd for duels
-    async def statusduels(self, ctx):
-        await serverstatus(ctx, "duels")
-
-    @commands.command(aliases=['skyblock'])  # Status cmd for Skyblock
-    async def statusskyblock(self, ctx):
-        await serverstatus(ctx, "skyblock")
-
-    @commands.command(aliases=['parkour'])  # Status cmd for parkour
-    async def statusparkour(self, ctx):
-        await serverstatus(ctx, "parkour")
-
-    @commands.command(aliases=['prison'])  # Status cmd for parkour
-    async def statusprison(self, ctx):
-        await serverstatus(ctx, "prison")
 
 def setup(client):
     client.add_cog(Server(client))

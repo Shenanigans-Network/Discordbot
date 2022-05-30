@@ -5,6 +5,7 @@ from bot import checkcommandchannel, checkperm, logger                          
 
 
 class Info(commands.Cog):
+    """Commands which provide information relating to Servers and our Network"""
     def __init__(self, client):
         self.client = client
         self.embed_color = embed_color
@@ -20,14 +21,14 @@ class Info(commands.Cog):
         print("Cog : Info.py Loaded")
 
 
-    @commands.command()
+    @commands.command(name="shop", help="Sends a link to the Moonball Network's Shop")
     async def shop(self, ctx):
         if await checkperm(ctx, 0): return
         await ctx.reply("Visit our shop here!- \nhttps://shop.moonball.io")
         await logger("i", f"Sent Shop link to message of {ctx.author.name}#{ctx.author.discriminator}", "info", f"Sent Shop link to message of {ctx.author.name}#{ctx.author.discriminator}")
 
 
-    @commands.command()
+    @commands.command(name="opensource", help="Sends a link to the Moonball Network's Discord Bot's Open Source Repository")
     async def opensource(self, ctx):
         if await checkperm(ctx, 0): return
         await checkcommandchannel(ctx)
@@ -35,7 +36,7 @@ class Info(commands.Cog):
         await logger("i", f"Sent Bot GitHub URL to message of {ctx.author.name}#{ctx.author.discriminator}", "info", f"Sent Bot GitHub URL to message of {ctx.author.name}#{ctx.author.discriminator}")
 
 
-    @commands.command()
+    @commands.command(name="bot-version", help="Sends the current version of the bot")
     async def botversion(self, ctx):
         if await checkperm(ctx, 0): return
         await checkcommandchannel(ctx)
@@ -43,7 +44,7 @@ class Info(commands.Cog):
         await logger("i", f"Sent Bot Version to message of {ctx.author.name}#{ctx.author.discriminator}", "info",f"Sent Bot Version to message of {ctx.author.name}#{ctx.author.discriminator}")
 
 
-    @commands.command()
+    @commands.command(name="invite", help="Sends a link to invite the bot to your server")
     async def invite(self, ctx):
         if await checkperm(ctx, 0): return
         await checkcommandchannel(ctx)
@@ -52,7 +53,7 @@ class Info(commands.Cog):
 
 
 
-    @commands.command()
+    @commands.command(name="socials", help="Sends a link to the Moonball Network's Social Media")
     async def socials(self, ctx):
         if await checkperm(ctx, 0): return
         await checkcommandchannel(ctx)

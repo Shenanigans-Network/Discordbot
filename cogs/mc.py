@@ -17,17 +17,17 @@ class Sha256:
     def __init__(self, usersalt):
         self.usersalt = usersalt
 
-    def realHash(self, encryptionmethod, pw):
+    def realHash(self, ignoreme, pw):
         return hashlib.sha256(pw.encode('utf-8')).hexdigest()
 
     def hash(self, password):
-        salt = self.usersalt  # generateSalt();
-        return str(str('$SHA$' + str(salt)) + '$') + self.realHash('sha256', (
-                self.realHash('sha256', password) + str(salt)))
+        salt = self.usersalt  # Get salt from database
+        return str(str('$SHA$' + str(salt)) + '$') + self.realHash('sha256', (self.realHash('sha256', password) + str(salt)))
 
 
 
 class MC(commands.Cog):
+    """Commands interacting with the Minecraft server, meant for the general user."""
     def __init__(self, client):
         self.client = client
         self.embed_color = embed_color
@@ -44,8 +44,8 @@ class MC(commands.Cog):
         print("Cog : Listeners.py Loaded")
 
 
-    @commands.command(aliases=['con'])
-    async def connect(self, ctx, *data):
+    @commands.command(name="connect", help=f"Connects your Minecraft account to your Discord account. Requires you to have joined the Minecraft server at least once and your Moonball Minecraft password. Syntax - ```ini\n{prefix}connect [username]\n```")
+    async def con(self, ctx, *data):
         if await checkperm(ctx, 0): return
         if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
         msg = await ctx.reply(embed=discord.Embed(title="Connect MC Account", description="*Processing Request, Please hold on...*", color=embed_color))
@@ -114,8 +114,8 @@ class MC(commands.Cog):
 
 
 
-    @commands.command(aliases=['discon'])
-    async def disconnect(self, ctx):
+    @commands.command(name="disconnect", help=f"Disconnect your Minecraft account from your Discord account.\n Syntax - ```ini\n{prefix}disconnect```" ,)
+    async def discon(self, ctx):
         if await checkperm(ctx, 0): return
         if await is_connected(ctx.author.id):
             await ctx.send(embed=discord.Embed(title="Disconnect MC Account",description="**There was an Error!**\nThere is no Minecraft Account connected to your Discord.", color=discord.colour.Color.red()))
@@ -144,11 +144,11 @@ class MC(commands.Cog):
 
     @mc.command(aliases=['connect'])
     async def connect_mc(self, ctx, *data):
-        await self.connect(ctx, data)
+        await self.con(ctx, data)
 
     @mc.command(aliases=['disconnect'])
     async def disconnect_mc(self, ctx):
-        await self.disconnect(ctx)
+        await self.discon(ctx)
 
     # @mc.command()
     # async def pay(self, ctx, *data):

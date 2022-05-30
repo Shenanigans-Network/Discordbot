@@ -4,6 +4,7 @@ from bot import prefix, embed_header, embed_footer, embed_color, bot_version, em
 from bot import checkcommandchannel, checkperm, logger, serverpower, sendcmd, get_permlvl, resetcount
 
 class Admin(commands.Cog):
+    """Commands meant for server admins only."""
     def __init__(self, client):
         self.client = client
         self.embed_color = embed_color
@@ -101,7 +102,7 @@ class Admin(commands.Cog):
     @admin.command(aliases=['givemoney', 'give', 'give_money'])
     async def give_money_admin(self, ctx, *data):  # Take Money Admin Command
         if await checkperm(ctx, 3): return
-        if len(data[0]) <= 3 or len(data[0]) >= 16:
+        if len(data[0]) < 3 or len(data[0]) > 16:
             await ctx.send("Invalid User Name"); return
         elif not data[1].isnumeric():
             await ctx.send("Invalid Amount"); return
@@ -300,7 +301,7 @@ class Admin(commands.Cog):
         perm_embed.add_field(name="Old Level", value=f"`{old_level}`", inline=True)
         perm_embed.add_field(name="New Level", value=f"`{data[1]}`", inline=True)
         await msg.edit(embed=perm_embed)
-        await logger("a",f"{ctx.message.mentions[0].name}#{ctx.message.mentions[0].discriminator}'s permission level has been set to {data[1]} from {old_level}","admin",f"{ctx.message.mentions[0].name}#{ctx.message.mentions[0].discriminator}'s permission level has been set to {data[1]} from {old_level}")  # Logs to Log channel
+        await logger("a", f"{ctx.message.mentions[0].name}#{ctx.message.mentions[0].discriminator}'s permission level has been set to {data[1]} from {old_level}","admin",f"{ctx.message.mentions[0].name}#{ctx.message.mentions[0].discriminator}'s permission level has been set to {data[1]} from {old_level}")  # Logs to Log channel
 
 
     @admin.command(aliases=['getlvl', "getlevel", "gl"])
@@ -311,7 +312,7 @@ class Admin(commands.Cog):
         level_embed.add_field(name="User",value=f"`{ctx.message.mentions[0].name}#{ctx.message.mentions[0].discriminator}`", inline=False)
         level_embed.add_field(name="Level", value=f"`{await get_permlvl(ctx.message.mentions[0])}`", inline=True)
         await ctx.reply(embed=level_embed)
-        await logger("a",f"{ctx.author.name}#{ctx.author.discriminator} requested the Permission Level of {ctx.message.mentions[0].name}#{ctx.message.mentions[0].discriminator}","admin",f"{ctx.author.name}#{ctx.author.discriminator} requested the Permission Level of {ctx.message.mentions[0].name}#{ctx.message.mentions[0].discriminator}")  # Logs to Log channel
+        await logger("a", f"{ctx.author.name}#{ctx.author.discriminator} requested the Permission Level of {ctx.message.mentions[0].name}#{ctx.message.mentions[0].discriminator}","admin",f"{ctx.author.name}#{ctx.author.discriminator} requested the Permission Level of {ctx.message.mentions[0].name}#{ctx.message.mentions[0].discriminator}")  # Logs to Log channel
 
 
     #

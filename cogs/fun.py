@@ -1,10 +1,11 @@
-import discord, random, aiohttp, io, asyncio
+import discord, random, aiohttp, io, asyncio, sqlite3, datetime
 from discord.ext import commands
 from bot import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon    # Import bot variables
 from bot import checkcommandchannel, checkperm, logger, countadd                                     # Import functions
 
 
 class Fun(commands.Cog):
+    """Fun and Interactive Commands that enrich the server experience"""
     def __init__(self, client):
         self.client = client
         self.embed_color = embed_color
@@ -25,7 +26,7 @@ class Fun(commands.Cog):
 
 
 
-    @commands.command(aliases=['announce, ann'])
+    @commands.command(name="embed", aliases=['announce, ann'], help=f"Send a nice looking embed with a custom Title and Content. \nSyntax - ```ini\n{prefix}sendembed [title] | [content]```")
     async def sendembed(self, ctx, *data):
         if await checkperm(ctx, 0): return
         try:
@@ -55,7 +56,7 @@ class Fun(commands.Cog):
         await logger("f", f"Sent Embed (Embed Creator) to message of {ctx.author.name}#{ctx.author.discriminator}","fun",f"Sent Embed (Embed Creator) to message of {ctx.author.name}#{ctx.author.discriminator}")  # Logs to Log channel
 
 
-    @commands.command(aliases=['cpoll', 'spoll', 'createpoll', 'sendpoll'])
+    @commands.command(name="poll", aliases=['cpoll', 'spoll', 'createpoll', 'sendpoll'], help=f"Create a poll with 2-4 options.\nSyntax - ```ini\n{prefix}poll [number of options] | [poll text]```")
     async def poll(self, ctx, *data):
         if await checkperm(ctx, 0): return
         try:
@@ -88,7 +89,7 @@ class Fun(commands.Cog):
         await logger("f", f"Sent Poll embed to message of {ctx.author.name}#{ctx.author.discriminator}", "fun", f"Sent Poll embed to message of {ctx.author.name}#{ctx.author.discriminator}")  # Logs to Log channel
 
 
-    @commands.command(aliases=['head', 'tail', 'flip', 'flipcoin'])
+    @commands.command(name="coinflip", aliases=['head', 'tail', 'flip', 'flipcoin'], help=f"Flip a coin and get either heads or tails.")
     async def coinflip(self, ctx):  # Coin Flip Command
         if await checkperm(ctx, 0): return
         if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
@@ -104,25 +105,20 @@ class Fun(commands.Cog):
         await logger("f", f'Sent Coin Flip result to message of {ctx.author.name}#{ctx.author.discriminator}', "fun",f'Sent Coin Flip result to message of {ctx.author.name}#{ctx.author.discriminator}')
 
 
-    @commands.command(aliases=['pfp', 'avatar'])
-    async def av(self, ctx, *, user: discord.User = None):
+    @commands.command(name="avatar", aliases=['pfp'], help=f"Get a user's profile picture. \nSyntax - ```ini\n{prefix}avatar [@user]```")
+    async def av(self, ctx):
         if await checkperm(ctx, 0): return
         if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
-        pfp_format = "gif"
-        user = user or ctx.author
-        if not user.is_avatar_animated():
-            pfp_format = "png"
-        avatar = user.avatar_url_as(format=pfp_format if pfp_format != "gif" else None)
-        async with aiohttp.ClientSession() as session:
-            async with session.get(str(avatar)) as resp:
-                image = await resp.read()
-        with io.BytesIO(image) as file:
-            await ctx.reply(file=discord.File(file, f"Avatar.{pfp_format}"))
-        await logger("i", f"Sent {ctx.author.name}'s avatar to message of {ctx.author.name}#{ctx.author.discriminator}","fun",f"Sent {ctx.author.name}'s avatar to message of {ctx.author.name}#{ctx.author.discriminator}")
+        mentions = ctx.message.mentions[0] if ctx.message.mentions else ctx.author
+        emb = discord.Embed(title="Avatar", color=embed_color, description=f"This is {mentions.name}#{mentions.discriminator}'s avatar!")
+        emb.set_image(url=mentions.avatar_url)
+        await ctx.reply(embed=emb)
+        await logger("f", f"Sent {mentions.name}'s avatar to message of {ctx.author.name}#{ctx.author.discriminator}","fun",f"Sent {mentions.name}'s avatar to message of {ctx.author.name}#{ctx.author.discriminator}")
 
 
-    @commands.command(aliases=['suggestion', 'createsuggestion'])
-    async def suggest(self, ctx, *data):
+
+    @commands.command(name="suggest", aliases=['suggestion', 'createsuggestion'], help=f"Send a suggestion to the server's suggestion channel.\nSyntax - ```ini\n{prefix}suggest [suggestion] | [https://image.url.png (optional)]```")
+    async def sendsuggestion(self, ctx, *data):
         if await checkperm(ctx, 0): return
         if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
         data = " ".join(data).split(' | ')  # Input Splitter
@@ -153,15 +149,81 @@ class Fun(commands.Cog):
         await ctx.reply(f"Your Suggestion was sent! Check <#960203053103972403> to see how its doing!")
         print(f"Sent {ctx.author.name}'s suggestion to the suggestion channel!")
 
+    async def check_for_birthday(self):
+        now = datetime.datetime.now()
+        curmonth = now.month
+        curday = now.day
+        e = True
+        while e:
+            # use db
+            con = sqlite3.connect('./data/data.db')
+            cur = con.cursor()
+            cur.execute(f"SELECT * FROM birthdays WHERE month={curmonth} AND day={curday}")
+            birthdays = cur.fetchall()
+            con.close()
+            if birthdays:
+                for member in birthdays:
+                    try:
+                        await self.client.get_user(member).send("Happy birthday!")
+                        # get birthday role
+                        role = discord.utils.get(self.client.get_guild(894902529039687720).roles, name="🎉Happy Birthday!🎉")
+                        await self.client.get_user(member).add_roles(role)
+                    except:
+                        pass
+            await asyncio.sleep(86400)  # task runs every day
 
-    # @commands.command(aliases=['cleardms'])
-    # async def cleardm(self, ctx):
-    #     messages_to_remove = 1000
-    #
-    #     async for message in self.client.get_user(ctx.user.id).history(limit=messages_to_remove):
-    #         if message.author.id == self.client.user.id:
-    #             await message.delete()
-    #             await asyncio.sleep(0.5)
+
+    @commands.command(name="set-birthday", aliases=["setbday"], help=f"Sets your Birthday. Syntax - \n```ini\n{prefix}set-birthday [day]/[month]```")
+    async def setbirthday(self, ctx, *data):
+        disc_id = ctx.message.author.id
+        _list = " ".join(data).split('/')
+        if 32 > int(_list[0]) < 1 < int(_list[1]) < 13:
+            await ctx.send("Invalid Date. Please use DD/MM format.")
+            return
+        con = sqlite3.connect('./data/data.db')
+        cur = con.cursor()
+        cur.execute(f"SELECT * FROM birthdays WHERE disc_id = {disc_id}")
+        data = cur.fetchone()
+        action = "set"
+        if data is None:
+            cur.execute(f"INSERT INTO birthdays VALUES ({disc_id}, {_list[0]}, {_list[1]})")
+        else:
+            action = "updated"
+            cur.execute(f"UPDATE birthdays SET day = {_list[0]}, month = {_list[1]} WHERE disc_id = {disc_id}")
+        con.commit()
+        con.close()
+
+        emb = discord.Embed(title="Birthday", color=embed_color, description=f"Successfully {action} your birthday!")
+        emb.add_field(name="User", value=f"`{ctx.author.name}#{ctx.author.discriminator}`", inline=True)
+        emb.add_field(name="Birthday", value=f"`{_list[0]}/{_list[1]}`", inline=True)
+        emb.set_footer(text=embed_footer)
+        emb.set_author(name=embed_header, icon_url=embed_icon)
+        await ctx.reply(embed=emb)
+        await logger("f", f"Set {ctx.author.name}'s birthday to {_list[0]}/{_list[1]}", "fun", f"Set {ctx.author.name}'s birthday to {_list[0]}/{_list[1]}")
+
+
+
+
+    @commands.command(name="remove-birthday", aliases=["removebday"], help=f"Removes your Birthday.")
+    async def removebirthday(self, ctx):
+        # Removes the birthday from the database
+        disc_id = ctx.message.author.id
+        con = sqlite3.connect('./data/data.db')
+        cur = con.cursor()
+        cur.execute(f"SELECT * FROM birthdays WHERE disc_id = {disc_id}")
+        data = cur.fetchone()
+        if data is None:
+            await ctx.reply("You don't have a birthday set!")
+            return
+        else:
+            cur.execute(f"DELETE FROM birthdays WHERE disc_id = {disc_id}")
+            con.commit()
+            await ctx.reply("Birthday removed!")
+
+
+    # if __name__ == "__main__":
+    #     self.bg_task = self.loop.create_task(self.check_for_birthday())
+
 
 def setup(client):
     client.add_cog(Fun(client))

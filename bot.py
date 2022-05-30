@@ -37,7 +37,7 @@ bot_version = "Beta 0.4.3"              # Bot Version
 prefix = "+"                            # Bot Prefix
 ptero_apikey = os.getenv("PTERO_KEY")   # Getting Pterodactyl API Key
 serv_ips = {'proxy': '192.186.100.60:25565', 'limbo': '192.168.100.60:25566', 'auth': '192.168.100.60:25567',
-            'lobby': '192.168.100.60:25568', 'survival': '192.168.100.80:25569', 'bedwars': '192.168.100.80:25570',
+            'lobby': '192.168.100.60:25568', 'survival': '192.168.100.80:25569', 'bedwars': '192.168.100.70:25570',
             'duels': '192.168.100.60:25571', 'skyblock': '192.168.100.70:25572', 'prison': '192.168.100.60:25573',
             'parkour': '192.168.100.60:25574'}  # Put your Pterodactyl server IPs here
 
@@ -48,8 +48,7 @@ embed_color = 0x1a1aff                          # Embed Color
 embed_header = "Moonball Network"               # Header/Author used in embeds
 embed_icon = "https://media.discordapp.net/attachments/951055432833695767/972792440572493884/logo-circle.png"
 
-client = commands.Bot(command_prefix=commands.when_mentioned_or(prefix), intents=intents,
-                      help_command=None, case_insensitive=True)  # Setting prefix
+client = commands.Bot(command_prefix=commands.when_mentioned_or(prefix), intents=intents, help_command=None, case_insensitive=True)  # Setting prefix
 
 
 @client.event
@@ -113,7 +112,7 @@ async def version_embed(ctx):
     vembed = discord.Embed(title="Here's the Server Version!", url="https://moonball.io", color=embed_color).set_footer(text=embed_footer)
     vembed.set_author(name=embed_header, icon_url=embed_icon)
     vembed.add_field(name="Java ", value="1.13 - 1.18.2", inline=True)
-    vembed.add_field(name="Bedrock ", value="1.17.40 - 1.18.12", inline=False)
+    vembed.add_field(name="Bedrock ", value="1.17.40 - 1.18.30", inline=False)
     await ctx.reply(embed=vembed)
     print(f'Sent Version Embed to message of {ctx.author.name}#{ctx.author.discriminator}')  # Logs to Console
     await logger("i", f'Sent Version Embed to message of {ctx.author.name}#{ctx.author.discriminator}', "info", f"Sent Version embed to message of {ctx.author.name}#{ctx.author.discriminator}")
@@ -158,7 +157,7 @@ async def serverstatus(ctx, st_server):  # Server Status front end
     server_embed.add_field(name="<:uptime_bot:951055640967675945> Uptime", value=f'{server_info["uptime"]}',inline=False)
     server_embed.set_footer(text=embed_footer)
     await msg.edit(embed=server_embed)
-    await logger("i",f'Server Status : Sent Server {st_server.capitalize()} embed to message of {ctx.author.name}#{ctx.author.discriminator}',"info",f"Sent Server {st_server.capitalize()} embed to message of {ctx.author.name}#{ctx.author.discriminator}")
+    await logger("s",f'Server Status : Sent Server {st_server.capitalize()} embed to message of {ctx.author.name}#{ctx.author.discriminator}',"server",f"Sent Server {st_server.capitalize()} embed to message of {ctx.author.name}#{ctx.author.discriminator}")
 
 async def is_connected(disc_id):
     con = sqlite3.connect('./data/data.db')
@@ -397,29 +396,6 @@ async def sendcmd(ctx, servername, cmd):
     except:
         ctx.send("Invalid Request")
     print(response.text)
-
-#
-#   Get Console
-#
-
-# async def getconsole(ctx, servername):
-#     ptero_panel = "panel.moonball.io"  # Put your Pterodactyl Panel's URL here
-#     server_guide = {'proxy': 'fe5a4fe1', 'limbo': "d1e50e31", 'auth': 'e91b165c', 'lobby': 'b7b7c4b3',
-#                     'survival': '777f305b', 'skyblock': '33cbad29', 'duels': '04cc6bb3', 'bedwars': '583e6fbc',
-#                     'bot': '5426b68e', 'parkour': '10770164',
-#                     'prison': 'a321d8fa'}  # Change this part, Add your server name and the ptero identifier (example in https://panel.moonball.io/server/5426b68e "5426b68e" is the ID)
-#     url = f'https://{ptero_panel}/api/client/servers/{server_guide[servername]}/websocket'
-#
-#
-#     headers = {
-#         "Authorization": f"Bearer {ptero_apikey}",
-#         "Accept": "application/json",
-#         "Content-Type": "application/json",
-#     }
-#     payload = {"event":"send logs","args":[null]}
-#     response = requests.request('GET', url, data=payload, headers=headers)
-#     print(response.text)
-
 
 #
 # Permission Level System
