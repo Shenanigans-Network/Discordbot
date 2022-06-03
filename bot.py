@@ -33,7 +33,7 @@ load_dotenv(dotenv_path=Path('data/.env'))
 # Assigning Global Variables
 #
 
-bot_version = "Beta 0.4.3"              # Bot Version
+bot_version = "0.4.4"              # Bot Version
 prefix = "+"                            # Bot Prefix
 ptero_apikey = os.getenv("PTERO_KEY")   # Getting Pterodactyl API Key
 serv_ips = {'proxy': '192.186.100.60:25565', 'limbo': '192.168.100.60:25566', 'auth': '192.168.100.60:25567',
@@ -57,7 +57,7 @@ async def on_ready():  # Stuff the bot does when it starts
     global log_channel, cmd_channel
     log_channel = client.get_channel(974324304470761482)  # Put your log channel's channel ID here
     cmd_channel = 960196816605950042  # Put your command channel id
-    await asyncio.sleep(2)
+    await asyncio.sleep(2) # Waits for cogs to be loaded
     print("---------------------")
     print("Connected to Discord!")  # Print this when the bot starts
     print("---------------------")
@@ -159,15 +159,7 @@ async def serverstatus(ctx, st_server):  # Server Status front end
     await msg.edit(embed=server_embed)
     await logger("s",f'Server Status : Sent Server {st_server.capitalize()} embed to message of {ctx.author.name}#{ctx.author.discriminator}',"server",f"Sent Server {st_server.capitalize()} embed to message of {ctx.author.name}#{ctx.author.discriminator}")
 
-async def is_connected(disc_id):
-    con = sqlite3.connect('./data/data.db')
-    c = con.cursor()
-    c.execute(f"SELECT mc_username FROM connection WHERE disc_id = '{disc_id}';")
-    result = c.fetchone()
-    if result:
-        return False
-    else:
-        return True
+
 #     False = Connected
 #     True = Not Connected
 
@@ -179,14 +171,39 @@ async def get_mc(disc_id):
     if result:
         return result[0]
     else:
-        return "not connected"
+        return None
+
+async def mc_exists(mc_username):
+    con = sqlite3.connect('./data/data.db')
+    c = con.cursor()
+    c.execute(f"SELECT mc_username FROM connection WHERE mc_username = '{mc_username}';")
+    result = c.fetchone()
+    if result:
+        return True
+    else:
+        return False
+    # True = Exists
+    # False = Doesn't Exist
+
+async def bad_char(input_str) -> str | None:
+    illegal_chars = [";", "'", '"', ".", ",", ":", "!", "?", "`", "~", "@", "#", "$", "%", "^", "&", "*", "(", ")", "-", "=", "[", "]", "{", "}", "|", "\\", "/", ">", "<", "`"]
+    chars_found = []
+    for i in illegal_chars:
+        if i in input_str:
+            chars_found.append(i)
+    if not chars_found:
+        return None
+    else:
+        # Converts list to string with Discord ` formatting
+        return f"`{'`, `'.join(chars_found)}`"
+
 
 
 async def logger(cat, printmsg, logtype, logmsg):  # Logs to Log channel
     await log_channel.send(f'**{logtype.capitalize()}** : ' + f'#{countadd(cat)} ' + logmsg)  # Logs to Log channel
     print(printmsg)
 
-async def checkcommandchannel(ctx):  # Check if the channel in which a command is executed in is a command-channel
+async def checkcommandchannel(ctx) -> bool:  # Check if the channel in which a command is executed in is a command-channel
     channel = ctx.channel.id
     if channel != cmd_channel:
         if not await checkperm(ctx, 1):
@@ -373,7 +390,8 @@ async def serverpower(servername, power, ctx):
         payload = '{"signal": "restart"}'
     elif power == "kill":
         payload = '{"signal": "kill"}'
-    else: return "invalid_power"
+    else:
+        return "invalid_power"
 
     response = requests.request('POST', url, data=payload, headers=headers)
     return response.text
@@ -385,7 +403,7 @@ async def serverpower(servername, power, ctx):
 
 async def sendcmd(ctx, servername, cmd):
     ptero_panel = "panel.moonball.io"  # Put your Pterodactyl Panel's URL here
-    server_guide = {'proxy': 'fe5a4fe1', 'limbo': "d1e50e31", 'auth': 'e91b165c', 'lobby': 'b7b7c4b3', 'survival': '777f305b', 'skyblock': '33cbad29', 'duels': '04cc6bb3', 'bedwars': '583e6fbc', 'bot': '5426b68e', 'parkour': '10770164', 'prison': 'a321d8fa'}  # Change this part, Add your server name and the ptero identifier (example in https://panel.moonball.io/server/5426b68e "5426b68e" is the ID)
+    server_guide = {'proxy': 'fe5a4fe1', 'limbo': "d1e50e31", 'auth': 'a9aa4f09', 'lobby': 'b7b7c4b3', 'survival': '777f305b', 'skyblock': '33cbad29', 'duels': '04cc6bb3', 'bedwars': '583e6fbc', 'bot': '5426b68e', 'parkour': '10770164', 'prison': 'a321d8fa'}  # Change this part, Add your server name and the ptero identifier (example in https://panel.moonball.io/server/5426b68e "5426b68e" is the ID)
     url = f'https://{ptero_panel}/api/client/servers/{server_guide[servername]}/command'
     headers = {"Authorization": f"Bearer {ptero_apikey}", "Accept": "application/json","Content-Type": "application/json"}
     payload = json.dumps({"command": cmd})
@@ -401,7 +419,7 @@ async def sendcmd(ctx, servername, cmd):
 # Permission Level System
 #
 
-async def get_permlvl(user, class_type=True):
+async def get_permlvl(user, class_type=True) -> -1 | 0 | 1 | 2 | 3 | 4 | 5:
     user = user.id if class_type else user
     con = sqlite3.connect('./data/data.db')
     cur = con.cursor()
@@ -416,7 +434,7 @@ async def get_permlvl(user, class_type=True):
     return result[1]
 
 
-async def checkperm(ctx, level):
+async def checkperm(ctx, level) -> bool:
     currentlvl = await get_permlvl(ctx.author, True)
     if int(currentlvl) < int(level):
         await ctx.reply(f"You don't have the required permissions to use this command. You have permission level `{currentlvl}`, but required level is `{level}`!", delete_after=10)

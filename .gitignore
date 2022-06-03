@@ -3,3 +3,4 @@
 .DS_Store
 ./data/data.sqbpro
 data/env
+cogs/old_help.py

@@ -2,11 +2,13 @@ import discord
 from discord.ext import commands
 from discord.errors import Forbidden
 from bot import bot_version, prefix, embed_color, embed_footer, embed_header, embed_icon
+from bot import logger
 
 
 async def send_embed(ctx, embed):
     try:
         await ctx.reply(embed=embed)
+        await logger("h", f"Sent help Embed to {ctx.author.name}#{ctx.author.discriminator}", "help", f"Sent help Embed to {ctx.author.name}#{ctx.author.discriminator}")
     except Forbidden:
         try:
             await ctx.reply("Hey, seems like I can't send embeds. Please check my permissions :)")
@@ -29,24 +31,12 @@ class Help(commands.Cog, description="Help and Admin Help Commands for the Bot")
     async def help(self, ctx, *input):
         """Shows all modules of that bot"""
 
-        owner =  123 # enter your name here
-        # owner_name =  # ENTER YOUR USERNAME#1234
-
-        # checks if cog parameter was given
-        # if not: sending all modules and commands not associated with a cog
         if not input:
-            # checks if owner is on this server - used to 'tag' owner
-            try:
-                owner = ctx.guild.get_member(owner).mention
-
-            except AttributeError as e:
-                owner = owner
 
             # starting to build embed
             emb = discord.Embed(title='Commands and modules', color=embed_color,
                                 description=f'Use `{prefix}help <module>` to gain more information about that module '
                                             f':smiley:\n').set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
-
 
             # iterating trough cogs, gathering descriptions
             cogs_desc = ''
@@ -77,41 +67,44 @@ class Help(commands.Cog, description="Help and Admin Help Commands for the Bot")
         # block called when one cog-name is given
         # trying to find matching cog and it's commands
         elif len(input) == 1:
+            #
+            #   Manually making help cmds for specific cogs
+            #
+            if input[0] == 'mc':
+                emb = discord.Embed(title='MC Command', color=embed_color,
+                                    description=f'Use `{prefix}mc <command>` to use the commands')
+                emb.add_field(name=f"{prefix}mc connect", value="Connects your Minecraft account to your Discord account", inline=False)
+                emb.add_field(name=f"{prefix}mc disconnect", value="Disconnects your Minecraft account from your Discord account", inline=False)
+                emb.add_field(name=f"{prefix}mc changepw", value="Change your Moonball Minecraft Password from your Discord account", inline=False)
+                emb.add_field(name=f"{prefix}mc pay", value="Pay Survival money to another user with their MC account connected to their Discord, right from Discord.", inline=False)
+                await send_embed(ctx, emb)
+                return
+            elif input[0] == 'admin':
+                await ctx.reply("Use `+admin` to check out the admin help.")
+                return
+
 
             # iterating trough cogs
             for cog in self.client.cogs:
                 # check if cog is the matching one
-                if cog.lower() == input[0].lower():
-
-                    # making title - getting description from doc-string below class
-                    emb = discord.Embed(title=f'{cog} - Commands', description=self.client.cogs[cog].__doc__,
-                                        color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
-
-                    # getting commands from cog
-                    for command in self.client.get_cog(cog).get_commands():
-                        # if cog is not hidden
-                        if not command.hidden:
+                if cog.lower() == input[0].lower(): # making title - getting description from doc-string below class
+                    emb = discord.Embed(title=f'{cog} - Commands', description=self.client.cogs[cog].__doc__,color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
+                    for command in self.client.get_cog(cog).get_commands():  # getting commands from cog
+                        if not command.hidden:   # if cog is not hidden
                             emb.add_field(name=f"`{prefix}{command.name}`", value=command.help, inline=False)
-                    # found cog - breaking loop
                     break
 
             # if input not found
             # yes, for-loops have an else statement, it's called when no 'break' was issued
             else:
-                emb = discord.Embed(title="What's that?!",
-                                    description=f"I've never heard from a module called `{input[0]}` before :scream:",
-                                    color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
+                emb = discord.Embed(title="What's that?!",description=f"I've never heard from a module called `{input[0]}` before :scream:",color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
 
         # too many cogs requested - only one at a time allowed
         elif len(input) > 1:
-            emb = discord.Embed(title="That's too much.",
-                                description="Please request only one module at once :sweat_smile:",
-                                color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
+            emb = discord.Embed(title="That's too much.",description="Please request only one module at once :sweat_smile:",color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
 
         else:
-            emb = discord.Embed(title="It's a magical place.",
-                                description="AN ERROR HAS OCCURRED :scream:",
-                                color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
+            emb = discord.Embed(title="It's a magical place.",description="AN ERROR HAS OCCURRED :scream:",color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
 
         # sending reply embed using our own function defined above
         await send_embed(ctx, emb)

@@ -1,4 +1,4 @@
-import discord, random, aiohttp, io, asyncio, sqlite3, datetime
+import discord, random, asyncio, sqlite3, datetime
 from discord.ext import commands
 from bot import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon    # Import bot variables
 from bot import checkcommandchannel, checkperm, logger, countadd                                     # Import functions

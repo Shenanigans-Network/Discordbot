@@ -364,5 +364,123 @@ class Admin(commands.Cog):
             await resetcount(ctx, "a", "admin")
 
 
+
+#
+#
+#   Admin Help
+#
+
+    @admin.command(aliases=['resetcounter'])  # Help reset counter
+    async def resetcounter_admin(self, ctx):
+        if await checkperm(ctx, 0): return
+        if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
+        # Base Admin-Help command embed
+        bothelp = discord.Embed(title="Admin Help - Reset Counter", url="https://moonball.io", description=f"Use `{prefix}admin [suffix]` to execute the command.\nResets a specific command counter",color=embed_color)
+        bothelp.set_author(name=embed_header, icon_url=embed_icon)
+        bothelp.add_field(name="Description", value=f"This command resets one of the 5 total command use counters`",inline=True)
+        bothelp.add_field(name="Counter Names", value=f"```ini\n[suggestion, help, info, fun, admin]```", inline=True)
+        bothelp.add_field(name="Valid suffixes", value=f"```ini\n[s, h, i, f, a]```", inline=True)
+        bothelp.set_footer(text=embed_footer)
+        await ctx.reply(embed=bothelp)
+        await logger("h", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}", "help",f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}")
+
+
+    @admin.command(aliases=['css', 'changeserverstate'])
+    async def changeserverpower_admin(self, ctx):  # Help changeserverstate
+        if await checkperm(ctx, 0): return
+        if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
+        # Base Admin-Help command embed
+        bothelp = discord.Embed(title="Admin Help - Change Server State", url="https://moonball.io", description=f"Use `{prefix}admin [state] [servername]` to execute the command.\nChanges the status of a specific mentioned server ",color=embed_color)
+        bothelp.set_author(name=embed_header, icon_url=embed_icon)
+        bothelp.add_field(name="Description", value=f"This command changes the power/state of any server", inline=True)
+        bothelp.add_field(name="Features",value=f"Start/Stop/Restart or Kill a server just with one single command here on Discord, using a conveniently easy command!",inline=False)
+        bothelp.add_field(name="Valid States", value=f"```ini\n[start, stop, restart, kill]```", inline=False)
+        bothelp.add_field(name="Valid Servers",value="```ini\n[proxy, limbo, auth, lobby, survival, skyblock, duels, bedwars, parkour]```",inline=False)
+        bothelp.set_footer(text=embed_footer)
+        await ctx.reply(embed=bothelp)
+        await logger("h", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}", "help",f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}")  # Logs to Log channel
+
+
+    @admin.command(aliases=['helpcmd'])
+    async def sendcmd_admin_help(self, ctx):  # Help sendcmd
+        if await checkperm(ctx, 0): return
+        if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
+        # Base Admin-Help command embed
+        bothelp = discord.Embed(title="Admin Help - Send Command", url="https://moonball.io", description=f"Use `{prefix}admin cmd [server] | [command]` to execute the command.\nSends a command to the mentioned server ",color=embed_color)
+        bothelp.set_author(name=embed_header, icon_url=embed_icon)
+        bothelp.add_field(name="Description", value=f"This command can send a command to the mentioned server",inline=True)
+        bothelp.add_field(name="Features",value=f"Send a in-game command to any mentioned server here on Discord, using a conveniently easy command and easy syntax!",inline=False)
+        bothelp.add_field(name="Valid Servers",value="```ini\n[proxy, limbo, auth, lobby, survival, skyblock, duels, bedwars, parkour]```",inline=False)
+        bothelp.add_field(name="Syntax", value=f"```ini\n{prefix}admin cmd [server] | [command here]```", inline=False)
+        bothelp.set_footer(text=embed_footer)
+        await ctx.reply(embed=bothelp)
+        await logger("h", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}", "help",f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}")  # Logs to Log channel
+
+
+    @admin.command(aliases=['helppw'])
+    async def password_admin(self, ctx):  # Help password
+        if await checkperm(ctx, 0): return
+        if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
+        # Base Admin-Help command embed
+        bothelp = discord.Embed(title="Admin Help - Change Password", url="https://moonball.io", description=f"Use `{prefix}admin pw [username] [new-password]` to execute the command.\nChanges the password of the mentioned user ",color=embed_color)
+        bothelp.set_author(name=embed_header, icon_url=embed_icon)
+        bothelp.add_field(name="Description", value=f"This command can change the password of a user", inline=True)
+        bothelp.add_field(name="Features",value=f"Change the password of any mentioned user with a simple and easy command, here from Discord.",inline=False)
+        bothelp.add_field(name="Syntax", value=f"```ini\n{prefix}admin pw Username NewPassword```", inline=False)
+        bothelp.set_footer(text=embed_footer)
+        await ctx.reply(embed=bothelp)
+        await logger("h", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}", "help",f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}")  # Logs to Log channel
+
+
+    @admin.command(aliases=['helpgive', 'helptake'])
+    async def helptg_admin(self, ctx):  # Help password
+        if await checkperm(ctx, 0): return
+        if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
+        # Base Admin-Help command embed
+        bothelp = discord.Embed(title="Admin Help - Give/Take Money", url="https://moonball.io", description=f"Use `{prefix}admin give/take [username] [money]` to execute the command.\nGive or take money from a user",color=embed_color)
+        bothelp.set_author(name=embed_header, icon_url=embed_icon)
+        bothelp.add_field(name="Description", value=f"This command can give or take money from a user", inline=True)
+        bothelp.add_field(name="Features", value=f"Gives or takes money from a specific user.", inline=False)
+        bothelp.add_field(name="Syntax", value=f"```ini\n{prefix}admin give/take Username Money```", inline=False)
+        bothelp.set_footer(text=embed_footer)
+        await ctx.reply(embed=bothelp)
+        await logger("h", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}", "help",f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}")  # Logs to Log channel
+
+
+    @admin.command(aliases=['permlvl'])
+    async def permlevel_admin(self, ctx):  # Help password
+        if await checkperm(ctx, 0): return
+        if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
+        # Base Admin-Help command embed
+        bothelp = discord.Embed(title="Admin Help - Permission Level", url="https://moonball.io",
+                                description=f"For permission level hierarchy list, do `{prefix}admin permlist`\n Use `{prefix}admin setlvl [@mention] [level]` or `{prefix}admin getlvl [@mention]` to execute the command.\nSet/Get the permission level of a user",color=embed_color)
+        bothelp.add_field(name="Description",value=f"This command can set or get the permission level of a user. Permission levels are used to give specific command access to different levels of permissions a user can have. Permissions vary between `-1` and `5`, -1 disabling access to all commands and 5 giving access to all.",inline=True)
+        bothelp.add_field(name="Features",value=f"Manage usage of commands easily with one command giving a permission level to a user",inline=False)
+        bothelp.add_field(name="Syntax",value=f"```ini\n{prefix}admin setlvl [@mention] [level]\n{prefix}admin getlvl [@mention]```",inline=False)
+        bothelp.set_footer(text=embed_footer)
+        bothelp.set_author(name=embed_header, icon_url=embed_icon)
+        await ctx.reply(embed=bothelp)
+        await logger("h", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}", "help",f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}")  # Logs to Log channel
+
+
+    @admin.command(aliases=['permlist'])
+    async def permlist_admin(self, ctx):  # Help password
+        if await checkperm(ctx, 0): return
+        if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
+        # Base Admin-Help command embed
+        bothelp = discord.Embed(title="Admin Help - Permission Level", url="https://moonball.io",description=f"This command gives the permission list and what commands it lets you use.",color=embed_color)
+        bothelp.add_field(name="5 | Developer", value=f"Gives access to all commands", inline=True)
+        bothelp.add_field(name="4 | Owner", value=f"Gives access to all commands except\n►Bot Backend/Database",inline=False)
+        bothelp.add_field(name="3 | Admin",value=f"Gives access to all commands except\n►affecting Permission Levels\n►Bot Backend/Database",inline=False)
+        bothelp.add_field(name="2 | Moderator",value=f"Gives access to all commands except\n►►affecting Permission Levels\n►Bot Backend/Database\n►Kill/Stop Servers\n►Give/Take Money",inline=False)
+        bothelp.add_field(name="1 | Helper", value=f"Gives access to\n►Execute command in any channel", inline=False)
+        bothelp.add_field(name="0 | User", value=f"Gives access to normal user commands", inline=False)
+        bothelp.add_field(name="-1 | Disabled", value=f"Gives access to no command", inline=False)
+        bothelp.set_footer(text=embed_footer)
+        bothelp.set_author(name=embed_header, icon_url=embed_icon)
+        await ctx.reply(embed=bothelp)
+        await logger("h", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}", "help",f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}")  # Logs to Log channel
+
+
 def setup(client):
     client.add_cog(Admin(client))
