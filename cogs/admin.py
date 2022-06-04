@@ -22,7 +22,6 @@ class Admin(commands.Cog):
         print("Cog : Admin.py Loaded")
 
 
-
     @commands.group(pass_context=True, invoke_without_command=True, aliases=['adminhelp'])
     async def admin(self, ctx):
         if await checkperm(ctx, 0): return
@@ -42,7 +41,6 @@ class Admin(commands.Cog):
         admin_help.set_footer(text=embed_footer)
         await ctx.reply(embed=admin_help)
         await logger("h", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}", "help",f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}")
-
 
 
 
@@ -306,6 +304,7 @@ class Admin(commands.Cog):
 
     @admin.command(aliases=['getlvl', "getlevel", "gl"])
     async def get_level(self, ctx):  # Get Level Command
+        if await checkperm(ctx, 0): return
         level_embed = discord.Embed(title="Permission Level", description=f"Got the Permission Level!", color=embed_color)
         level_embed.set_author(name=embed_header, icon_url=embed_icon)
         level_embed.set_footer(text=embed_footer)
@@ -321,7 +320,7 @@ class Admin(commands.Cog):
 
     @admin.command(aliases=['discon'])
     async def disconnect(self, ctx, *data):
-        if await checkperm(ctx, 4): return
+        if await checkperm(ctx, 3): return
         msg = await ctx.reply(embed=discord.Embed(title="Disconnect MC Account", description=f"*Disconnecting Account, Please hold on...*", color=embed_color))
         if len(data) != 1:
             await msg.edit(embed=discord.Embed(title="Disconnect MC Account", description="**There was an Error!**\nYou didn't provide the correct arguments.", color=discord.colour.Color.red()))
@@ -362,6 +361,14 @@ class Admin(commands.Cog):
             await resetcount(ctx, "f", "fun")
         elif data[0] == "admin" or data[0] == "a":
             await resetcount(ctx, "a", "admin")
+
+    @admin.command(aliases=['presence', 'cp'])
+    async def change_presence(self, ctx, *data):
+        if await checkperm(ctx, 3): return
+        data = " ".join(data)
+        await self.client.change_presence(activity=discord.Game(data))  # Set Presence
+        await ctx.reply(embed=discord.Embed(title="Change Presence", description="**Success!**\nThe status has been changed.", color=embed_color))
+
 
 
 

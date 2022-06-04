@@ -33,7 +33,7 @@ load_dotenv(dotenv_path=Path('data/.env'))
 # Assigning Global Variables
 #
 
-bot_version = "0.4.4"              # Bot Version
+bot_version = "0.4.5"              # Bot Version
 prefix = "+"                            # Bot Prefix
 ptero_apikey = os.getenv("PTERO_KEY")   # Getting Pterodactyl API Key
 serv_ips = {'proxy': '192.186.100.60:25565', 'limbo': '192.168.100.60:25566', 'auth': '192.168.100.60:25567',
@@ -43,7 +43,7 @@ serv_ips = {'proxy': '192.186.100.60:25565', 'limbo': '192.168.100.60:25566', 'a
 
 
 # Embed related variables
-embed_footer = f"Moonball Bot • {bot_version}"  # Embed footer
+embed_footer = f"Moonball Bot • Version {bot_version}"  # Embed footer
 embed_color = 0x1a1aff                          # Embed Color
 embed_header = "Moonball Network"               # Header/Author used in embeds
 embed_icon = "https://media.discordapp.net/attachments/951055432833695767/972792440572493884/logo-circle.png"
@@ -157,7 +157,7 @@ async def serverstatus(ctx, st_server):  # Server Status front end
     server_embed.add_field(name="<:uptime_bot:951055640967675945> Uptime", value=f'{server_info["uptime"]}',inline=False)
     server_embed.set_footer(text=embed_footer)
     await msg.edit(embed=server_embed)
-    await logger("s",f'Server Status : Sent Server {st_server.capitalize()} embed to message of {ctx.author.name}#{ctx.author.discriminator}',"server",f"Sent Server {st_server.capitalize()} embed to message of {ctx.author.name}#{ctx.author.discriminator}")
+    await logger("s", f'Server Status : Sent Server {st_server.capitalize()} embed to message of {ctx.author.name}#{ctx.author.discriminator}',"server",f"Sent Server {st_server.capitalize()} embed to message of {ctx.author.name}#{ctx.author.discriminator}")
 
 
 #     False = Connected

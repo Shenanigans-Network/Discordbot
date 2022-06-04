@@ -1,4 +1,4 @@
-import discord, random, asyncio, sqlite3, datetime
+import discord, random, asyncio, sqlite3, datetime, aiohttp
 from discord.ext import commands
 from bot import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon    # Import bot variables
 from bot import checkcommandchannel, checkperm, logger, countadd                                     # Import functions
@@ -202,8 +202,6 @@ class Fun(commands.Cog):
         await logger("f", f"Set {ctx.author.name}'s birthday to {_list[0]}/{_list[1]}", "fun", f"Set {ctx.author.name}'s birthday to {_list[0]}/{_list[1]}")
 
 
-
-
     @commands.command(name="remove-birthday", aliases=["removebday"], help=f"Removes your Birthday.")
     async def removebirthday(self, ctx):
         # Removes the birthday from the database
@@ -224,6 +222,26 @@ class Fun(commands.Cog):
     # if __name__ == "__main__":
     #     self.bg_task = self.loop.create_task(self.check_for_birthday())
 
+
+    @commands.command(name="getjoke", aliases=["joke", "jokes"], help=f"Gets a random joke from the Joke API. Syntax - \n```ini\n{prefix}getjoke```")
+    async def getjoke(self, ctx):
+        async with aiohttp.ClientSession() as session:
+            async with session.get("https://sv443.net/jokeapi/v2/joke/Any?blacklistFlags=nsfw,religious,political,racist,sexist") as resp: #&type=single
+                data = await resp.json()
+        if data["type"] == "single":
+            emb = discord.Embed(title="Random Joke", color=embed_color, description=f"{data['joke']}")
+            emb.set_footer(text=embed_footer)
+            emb.set_author(name=embed_header, icon_url=embed_icon)
+            await ctx.reply(embed=emb)
+            await logger("f", f"Sent {ctx.author.name}#{ctx.author.discriminator} a joke", "fun", f"Sent {ctx.author.name}#{ctx.author.discriminator} a joke")
+        elif data["type"] == "twopart":
+            emb = discord.Embed(title="Random Joke", color=embed_color, description=f"{data['setup']}\n||{data['delivery']}||")
+            emb.set_footer(text=embed_footer)
+            emb.set_author(name=embed_header, icon_url=embed_icon)
+            await ctx.reply(embed=emb)
+            await logger("f", f"Sent {ctx.author.name}#{ctx.author.discriminator} a joke", "fun", f"Sent {ctx.author.name}#{ctx.author.discriminator} a joke")
+        else:
+            await ctx.reply("Something went wrong!")
 
 def setup(client):
     client.add_cog(Fun(client))

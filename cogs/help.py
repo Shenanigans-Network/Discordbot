@@ -25,6 +25,10 @@ class Help(commands.Cog, description="Help and Admin Help Commands for the Bot")
         self.bot_version = bot_version
         self.prefix = prefix
 
+    @commands.Cog.listener()
+    async def on_ready(self):
+        print("Cog : Help.py Loaded")
+
 
     @commands.command()
     # @commands.bot_has_permissions(add_reactions=True,embed_links=True)

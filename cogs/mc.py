@@ -18,13 +18,12 @@ class Sha256:
     def __init__(self, usersalt):
         self.usersalt = usersalt
 
-    def realHash(self, ignoreme, pw):
+    def realHash(self, useless_var_ignore_me, pw):
         return hashlib.sha256(pw.encode('utf-8')).hexdigest()
 
     def hash(self, password):
         salt = self.usersalt  # Get salt from database
         return str(str('$SHA$' + str(salt)) + '$') + self.realHash('sha256', (self.realHash('sha256', password) + str(salt)))
-
 
 
 class MC(commands.Cog):
@@ -203,33 +202,37 @@ class MC(commands.Cog):
         await checkperm(ctx, 0)
         await checkcommandchannel(ctx)
         emb = await ctx.reply(embed=discord.Embed(title="Pay Command", description="**Please wait...**", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
-        charsfound = await bad_char(data[0])
-        if charsfound:
-            await emb.edit(embed=discord.Embed(title="Pay Command", description=f"**Error!**\nThe Minecraft Account, `{data[0]}` cannot contain {charsfound}.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
-            return
-        user1 = await get_mc(ctx.author.id)
-        if user1 is None:
-            await emb.edit(embed=discord.Embed(title="Change Password Command",description="**There was an Error!**\nThere is no Minecraft Account connected to your Discord.", color=discord.colour.Color.red()))
-            return
-        elif not len(data) == 2:
+        if not ctx.message.mentions:    # If payee is a mention and not a username
+            charsfound = await bad_char(data[0])
+            if charsfound:
+                await emb.edit(embed=discord.Embed(title="Pay Command", description=f"**Error!**\nThe Minecraft Account, `{data[0]}` cannot contain {charsfound}.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+                return
+            elif not await mc_exists(data[0]):
+                await emb.edit(embed=discord.Embed(title="Pay Command",description=f"**Error!**\nThe user, <@{ctx.message.mentions[0].id}> has no Minecraft account connected!\nPlease ask the owner of the account to connect their MC account to their Discord, with `{prefix}connect` to enable this feature.",color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+                return
+
+        user1 = await get_mc(ctx.author.id) # Get the username of the payer
+        if not len(data) == 2:    # If invalid number of arguments given
             await emb.edit(embed=discord.Embed(title="Pay Command", description=f"**Error!**\nInvalid number of arguments. Expected `2` got `{len(data)}`", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
-        elif not await mc_exists(data[0]):
-            await emb.edit(embed=discord.Embed(title="Pay Command", description=f"**Error!**\nThe Minecraft Account `{data[0]}` is not connected!\nPlease ask the owner of the account to connect their MC account to their Discord, with `{prefix}connect` to enable this feature.",color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+        elif user1 is None:   # If the payer has no Minecraft account
+            await emb.edit(embed=discord.Embed(title="Change Password Command",description="**There was an Error!**\nThere is no Minecraft Account connected to your Discord.", color=discord.colour.Color.red()))
             return
-        elif not data[1].isnumeric():
+        elif not data[1].isnumeric():   # If the amount is not a number
             await emb.edit(embed=discord.Embed(title="Pay Command", description=f"**Error!**\nThe amount, `{data[1]}` is not a number.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
-        elif user1 == data[0]:
-            await emb.edit(embed=discord.Embed(title="Pay Command", description="**Error!**\nYou cannot pay yourself.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
-            return
+
         user2 = data[0]
         amount = int(data[1])
 
+        if user1 == user2:  # If the payer and payee are the same person
+            await emb.edit(embed=discord.Embed(title="Pay Command", description="**Error!**\nYou cannot pay yourself.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            return
         try:
             await sendcmd(ctx, "survival", f"eco take {user1} {amount}")
             await sendcmd(ctx, "survival", f"eco give {user2} {amount}")
-            await sendcmd(ctx, "survival", f"mail {user2} Hello, {user1} has paid you ${amount}")
+            await sendcmd(ctx, "survival", f"msg {user2} Greetings!, {user1} has paid you ${amount}")
+            await sendcmd(ctx, "survival", f"mail {user2} Greetings!, {user1} has paid you ${amount}")
         except:
             await emb.edit(embed=discord.Embed(title="Pay Command", description="**There was an Error!**\nThere was an error while sending the command to the server. Please contact the mods.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
