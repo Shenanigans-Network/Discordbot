@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord.errors import Forbidden
 from bot import bot_version, prefix, embed_color, embed_footer, embed_header, embed_icon
-from bot import logger
+from bot import logger, checkperm, checkcommandchannel
 
 
 async def send_embed(ctx, embed):
@@ -33,6 +33,8 @@ class Help(commands.Cog, description="Help and Admin Help Commands for the Bot")
     @commands.command()
     # @commands.bot_has_permissions(add_reactions=True,embed_links=True)
     async def help(self, ctx, *input):
+        if await checkperm(ctx, 0): return
+        if await checkcommandchannel(ctx): return
         """Shows all modules of that bot"""
 
         if not input:

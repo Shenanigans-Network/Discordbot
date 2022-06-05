@@ -22,10 +22,10 @@ from discord.ext import commands  # Imports required Modules
 from mcstatus import MinecraftServer
 from dotenv import load_dotenv
 from pathlib import Path
+from discord.commands import SlashCommand
 
 
 intents = discord.Intents.all()
-intents.members = True
 load_dotenv(dotenv_path=Path('data/.env'))
 
 
@@ -43,12 +43,12 @@ serv_ips = {'proxy': '192.186.100.60:25565', 'limbo': '192.168.100.60:25566', 'a
 
 
 # Embed related variables
-embed_footer = f"Moonball Bot • Version {bot_version}"  # Embed footer
+embed_footer = f"Moonball Bot • {bot_version}"  # Embed footer
 embed_color = 0x1a1aff                          # Embed Color
 embed_header = "Moonball Network"               # Header/Author used in embeds
 embed_icon = "https://media.discordapp.net/attachments/951055432833695767/972792440572493884/logo-circle.png"
 
-client = commands.Bot(command_prefix=commands.when_mentioned_or(prefix), intents=intents, help_command=None, case_insensitive=True)  # Setting prefix
+client = commands.Bot(command_prefix=prefix, intents=intents, help_command=None, case_insensitive=True)  # Setting prefix
 
 
 @client.event
@@ -61,6 +61,7 @@ async def on_ready():  # Stuff the bot does when it starts
     print("---------------------")
     print("Connected to Discord!")  # Print this when the bot starts
     print("---------------------")
+
 
 #
 # == Cog Commands ==
