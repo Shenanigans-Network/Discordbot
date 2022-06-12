@@ -27,8 +27,19 @@ class Listeners(commands.Cog):
         if ctx.author.bot: return  # checks if author is a bot.
         else:
             if " ip " in f" {ctx.content.lower()} ": await ip_embed(ctx)                # On word IP send ip embed
-            elif " version " in f" {ctx.content.lower()} ": await version_embed(ctx)    # On word "version" send the version embed
 
+            # If message starts with +
+            if ctx.content.startswith(prefix):
+                try:
+                    await ctx.reply("The bot has now moved to Slash commands, instead of normal prefixed commands. To use commands press `/` and view all the Moonball Bot slash commands!")
+                except Exception:
+                    pass
+                return
+
+
+            elif " version " in f" {ctx.content.lower()} ": await version_embed(ctx)    # On word "version" send the version embed
+            elif " 1.8.9 " in f" {ctx.content.lower()} ": await version_embed(ctx)     # On word "1.8.9" send the version embed
+            elif " 1.8 " in f" {ctx.content.lower()} ": await version_embed(ctx)        # On word "1.8" send the version embed
             # elif self.client.user in ctx.mentions:  # Replies to when the Bot in @mentioned
             #     await ctx.reply(f"Hello! my prefix is `{prefix}`. Use `{prefix}help` to view available commands.",delete_after=10.0)
             #     await logger("h", f"Sent Mention message to {ctx.author.name}#{ctx.author.discriminator}", "help",f"Sent mention-message to message of {ctx.author.name}#{ctx.author.discriminator}")

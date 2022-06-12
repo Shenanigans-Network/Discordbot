@@ -1,10 +1,10 @@
 import discord, hashlib, mysql.connector, sqlite3, os
 from discord.ext import commands
-from bot import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon    # Import bot variables
-from bot import logger, checkperm, checkcommandchannel, get_mc, sendcmd, mc_exists, bad_char
+from bot import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon, guild_id    # Import bot variables
+from bot import logger, checkperm, get_mc, sendcmd, bad_char
 from dotenv import load_dotenv
 from pathlib import Path
-
+from discord.commands import SlashCommandGroup
 
 load_dotenv(dotenv_path=Path('./data/.env'))
 db_user = os.getenv("DB_USER")
@@ -18,13 +18,14 @@ class Sha256:
     def __init__(self, usersalt):
         self.usersalt = usersalt
 
-    def realHash(self, useless_var_ignore_me, pw):
+    def realHash(self, pw):
         return hashlib.sha256(pw.encode('utf-8')).hexdigest()
 
     def hash(self, password):
         salt = self.usersalt  # Get salt from database
-        return str(str('$SHA$' + str(salt)) + '$') + self.realHash('sha256', (self.realHash('sha256', password) + str(salt)))
+        return str(str('$SHA$' + str(salt)) + '$') + self.realHash((self.realHash(password) + str(salt)))
 
+mc = discord.SlashCommandGroup("mc", "Minecraft Related Commands")
 
 class MC(commands.Cog):
     """Commands interacting with the Minecraft server, meant for the general user."""
@@ -36,39 +37,35 @@ class MC(commands.Cog):
         self.embed_footer = embed_footer
         self.prefix = prefix
         self.bot_version = bot_version
+        self.mc = mc
 
+    mc = SlashCommandGroup("mc", "Various commands meant for users that have connected their MC account.")
 
     @commands.Cog.listener()
     async def on_ready(self):
+        print("Cog : MC.py Loaded")
 
-        print("Cog : Listeners.py Loaded")
 
-
-    @commands.command(name="connect", help=f"Connects your Minecraft account to your Discord account. Requires you to have joined the Minecraft server at least once and your Moonball Minecraft password. Syntax - ```ini\n{prefix}connect [username]\n```")
-    async def con(self, ctx, *data):
+    @mc.command(name="connect", description="Connects your Discord account to your Minecraft Account", guild_ids=[guild_id])
+    async def con(self, ctx, username: str):
         if await checkperm(ctx, 0): return
-        if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
-        msg = await ctx.reply(embed=discord.Embed(title="Connect MC Account", description="*Processing Request, Please hold on...*", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
-        if len(data) != 1:  #Checks if there is only one argument
-            await msg.edit(embed=discord.Embed(title="Connect MC Account", description=f"**There was an error!**\nInvalid Syntax! The correct syntax is `{prefix}connect <username>`.", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
-            return
-        charsfound = await bad_char(data[0])
+        msg = await ctx.respond(embed=discord.Embed(title="Connect MC Account", description="*Processing Request, Please hold on...*", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), ephemeral=True)
+        charsfound = await bad_char(username)
         if charsfound:
-            await msg.edit(embed=discord.Embed(title="Connect MC Account", description=f"**There was an error!**\nThe username contains illegal character(s)!\n{charsfound}", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            await msg.edit_original_message(embed=discord.Embed(title="Connect MC Account", description=f"**There was an error!**\nThe username contains illegal character(s)!\n{charsfound}", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
         con = sqlite3.connect('./data/data.db') # Connect to the database
         cursor = con.cursor()
         cursor.execute(f"SELECT * FROM connection WHERE disc_id = '{ctx.author.id}';")  # Get the discord user from the database
         id_result = cursor.fetchone()
         if id_result:   # If the user is in the database
-            await msg.edit(embed=discord.Embed(title="Connect MC Account", description="**There was an Error!**\nYour Discord account is already connected.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            await msg.edit_original_message(embed=discord.Embed(title="Connect MC Account", description="**There was an Error!**\nYour Discord account is already connected.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
-        cursor.execute(f"SELECT * FROM connection WHERE mc_username = '{data[0]}';") # Get the mc user from the database
+        cursor.execute(f"SELECT * FROM connection WHERE mc_username = '{username}';") # Get the mc user from the database
         mc_result = cursor.fetchone()
         if mc_result:   # If the mc user is in the database
-            await msg.edit(embed=discord.Embed(title="Connect MC Account", description="**There was an Error!**\nYour Minecraft account is already connected.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            await msg.edit_original_message(embed=discord.Embed(title="Connect MC Account", description="**There was an Error!**\nYour Minecraft account is already connected.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
-        username = data[0]
         try:    # Try to connect to the Authme MYSQL database
             mydb = mysql.connector.connect(
                 host="192.168.100.70",
@@ -77,30 +74,30 @@ class MC(commands.Cog):
                 database='s21_authme'
             )
         except mysql.connector.Error as err:    # If there is an error
-            await msg.edit(embed=discord.Embed(title="Connect MC Account", description=f"**There was an error!**\nCouldn't Connect to the Database.\n`{err}`", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            await msg.edit_original_message(embed=discord.Embed(title="Connect MC Account", description=f"**There was an error!**\nCouldn't Connect to the Database.\n`{err}`", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
         cur = mydb.cursor()
         cur.execute(f"SELECT password FROM authme WHERE realname = '{username}';")  # Get the Hashed Password from the Authme database
         result = cur.fetchone()
         if result is None:   # If the user doesn't exist in the Authme database
-            await msg.edit(embed=discord.Embed(title="Connect MC Account", description=f"**There was an error!**\nThe username `{username}` does not exist in the database. Have you registered?", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            await msg.edit_original_message(embed=discord.Embed(title="Connect MC Account", description=f"**There was an error!**\nThe username `{username}` does not exist in the database. Have you registered?", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
         mydb.close()
         db_password = result[0]
-        await msg.edit(embed=discord.Embed(title="Connect MC Account", description="Please DM me your password.", color=embed_color))
+        await msg.edit_original_message(embed=discord.Embed(title="Connect MC Account", description="Please DM me your password.", color=embed_color))
         dm = await ctx.author.send(embed=discord.Embed(title="Connect MC Account", description="Please DM me your Moonball *Minecraft* password.\nNote : You have 60 seconds to respond!", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
         try:    # Try to get the password from the DM
             password = await self.client.wait_for('message', check=lambda message: message.author == ctx.author, timeout=60)
         except:  # If the user didn't respond in time
             await dm.edit(embed=discord.Embed(title="Connect MC Account", description="**There was an Error!**\n You didn't send your password in DMs in time!", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
-            await msg.edit(embed=discord.Embed(title="Connect MC Account", description="**There was an Error!**\n You didn't send your password in DMs in time!", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            await msg.edit_original_message(embed=discord.Embed(title="Connect MC Account", description="**There was an Error!**\n You didn't send your password in DMs in time!", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
         user_salt = db_password.split('$')[2]
         sha256 = Sha256(user_salt)
         hashed_pw = sha256.hash(password.content)
         if hashed_pw != db_password:    # If the password is incorrect
             await dm.edit(embed=discord.Embed(title="Connect MC Account", description="*Incorrect Password!*", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
-            await msg.edit(embed=discord.Embed(title="Connect MC Account", description="*Incorrect Password!*", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            await msg.edit_original_message(embed=discord.Embed(title="Connect MC Account", description="*Incorrect Password!*", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
         con = sqlite3.connect('./data/data.db')
         c = con.cursor()
@@ -113,17 +110,23 @@ class MC(commands.Cog):
         con_embed.add_field(name="Username", value=f"`{username}`", inline=True)
         con_embed.add_field(name="Discord", value=f"`{ctx.author.id}`", inline=True)
         await dm.edit(embed=con_embed)
-        await msg.edit(embed=con_embed)   # Edit the message to show the success message
+        await msg.edit_original_message(embed=con_embed)   # Edit the message to show the success message
+        # give them the "connected" role
+        role = discord.utils.get(ctx.guild.roles, name="Connected")
+        try:
+            await ctx.author.add_roles(role)
+        except Exception as e:
+            print("Couldn't add role. Error:", e)
         await logger("m", f"{ctx.author.name}#{ctx.author.discriminator} connected their Minecraft account to their Discord account.", "Minecraft", f"{ctx.author.name}#{ctx.author.discriminator} ({ctx.author.id}) connected their Minecraft account to their Discord account.")
 
 
 
-    @commands.command(name="disconnect", help=f"Disconnect your Minecraft account from your Discord account.\n Syntax - ```ini\n{prefix}disconnect```" ,)
+    @mc.command(name="disconnect", description="Disconnects your Discord account from your Minecraft Account", guild_ids=[guild_id])
     async def discon(self, ctx):
         if await checkperm(ctx, 0): return
         iscon = await get_mc(ctx.author.id)
         if iscon is None:
-            await ctx.send(embed=discord.Embed(title="Disconnect MC Account",description="**There was an Error!**\nThere is no Minecraft Account connected to your Discord.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            await ctx.respond(embed=discord.Embed(title="Disconnect MC Account", description="**There was an Error!**\nThere is no Minecraft Account connected to your Discord.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), ephemeral=True)
             return
         mc = await get_mc(ctx.author.id)
         con = sqlite3.connect('./data/data.db')
@@ -136,97 +139,64 @@ class MC(commands.Cog):
         discon_embed.set_author(name=embed_header, icon_url=embed_icon)
         discon_embed.add_field(name="MC", value=f"`{mc}`", inline=True)
         discon_embed.add_field(name="Discord", value=f"`{ctx.author.id}`", inline=True)
-        await ctx.send(embed=discon_embed)
+        await ctx.respond(embed=discon_embed, ephemeral=True)
+        # remove the "connected" role
+        role = discord.utils.get(ctx.guild.roles, name="Connected")
+        try:
+            await ctx.author.remove_roles(role)
+        except Exception as e:
+            print("Couldn't remove role. Error:", e)
         await logger("m", f"{ctx.author.name}#{ctx.author.discriminator} disconnected their Minecraft account from their Discord account.", "Minecraft", f"{ctx.author.name}#{ctx.author.discriminator} ({ctx.author.id}) disconnected their Minecraft account from their Discord account.")
 
 
-    @commands.group(aliases=['minecraft'], pass_context=True, invoke_without_command=True)
-    async def mc(self, ctx):
-        mc_embed = discord.Embed(title="Minecraft Commands", description=f"The commands which interact with the Minecraft Server are prefixed by `{prefix}mc`\nMore info can be found at `{prefix}help mc`", color=embed_color)
-        mc_embed.set_footer(text=embed_footer)
-        mc_embed.set_author(name=embed_header, icon_url=embed_icon)
-        await ctx.reply(embed=mc_embed)
 
-    @mc.command(aliases=['connect'])
-    async def connect_mc(self, ctx, *data):
-        await self.con(ctx, data)
-
-    @mc.command(aliases=['disconnect'])
-    async def disconnect_mc(self, ctx):
-        await self.discon(ctx)
-
-
-    @mc.command(aliases=['changepw', "changepass", "changepassword"])
+    @mc.command(name="changepassword", description="Changes your Moonball Minecraft account Password", guild_ids=[guild_id])
     async def changepassword_mc(self, ctx):
-        if await checkperm(ctx, 0): return
-        emb = await ctx.reply(embed=discord.Embed(title="Change Password", description=f"*Processing Request, Please wait!*", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+        emb = await ctx.respond(embed=discord.Embed(title="Change Password", description=f"*Processing Request, Please wait!*", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), ephemeral=True)
         username = await get_mc(ctx.author.id)
         if username is None:
-            await emb.edit(embed=discord.Embed(title="Change Password Command",description="**There was an Error!**\nThere is no Minecraft Account connected to your Discord.", color=discord.colour.Color.red()))
+            await emb.edit_original_message(embed=discord.Embed(title="Change Password Command",description="**There was an Error!**\nThere is no Minecraft Account connected to your Discord.", color=discord.colour.Color.red()))
             return
         await ctx.author.send(f"Please send your new password for your Minecraft account `{username}`")
         try:
             pw = (await self.client.wait_for('message', check=lambda message: message.author == ctx.author, timeout=60)).content
         except:
-            await emb.edit(embed=discord.Embed(title="Change Password Command", description="**There was an Error!**\nYou took too long to send your password.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            await emb.edit_original_message(embed=discord.Embed(title="Change Password Command", description="**There was an Error!**\nYou took too long to send your password.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
         if 3 < len(pw) > 16:
-            await emb.edit(embed=discord.Embed(title="Change Password Command", description=f"**Error!**\nYour password must be between 3 and 16 characters.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            await emb.edit_original_message(embed=discord.Embed(title="Change Password Command", description=f"**Error!**\nYour password must be between 3 and 16 characters.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
         elif " " in pw:
-            await emb.edit(embed=discord.Embed(title="Change Password Command", description=f"**Error!**\nYour password cannot contain spaces.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
-            return
-        # Anti SQL Injection
-        if ";" in pw:
-            await emb.edit(embed=discord.Embed(title="Change Password Command", description=f"**Error!**\nYour password cannot contain a `;`.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            await emb.edit_original_message(embed=discord.Embed(title="Change Password Command", description=f"**Error!**\nYour password cannot contain spaces.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
         cmd = f"authme cp {username} {pw}"
         try:
             cmdout = await sendcmd(ctx, "auth", cmd)
         except:
-            await emb.edit(embed=discord.Embed(title="Change Password Command", description="**There was an Error!**\nThere was an error while trying to change your password.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            await emb.edit_original_message(embed=discord.Embed(title="Change Password Command", description="**There was an Error!**\nThere was an error while trying to change your password.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
         if cmdout != "done": return
         pw_embed = discord.Embed(title="Change Password Command", description=f"**Success!**\nYour password has been changed.", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
         pw_embed.add_field(name="Username", value=username)
         pw_embed.set_footer(text=embed_footer)
         pw_embed.set_author(name=embed_header, icon_url=embed_icon)
-        await ctx.reply(embed=pw_embed)
+        await emb.edit_original_message(embed=pw_embed)
         pw_embed.add_field(name="Password", value=f"||{pw}||")
         await ctx.author.send(embed=pw_embed)
 
 
 
-    @mc.command()
-    async def pay(self, ctx, *data):
+    @mc.command(name="pay", description="MC : Pay Someone a given amount of money (Survival)", guild_ids=[guild_id])
+    async def pay(self, ctx, user: discord.Member, amount: int):
         await checkperm(ctx, 0)
-        await checkcommandchannel(ctx)
-        emb = await ctx.reply(embed=discord.Embed(title="Pay Command", description="**Please wait...**", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
-        if not ctx.message.mentions:    # If payee is a mention and not a username
-            charsfound = await bad_char(data[0])
-            if charsfound:
-                await emb.edit(embed=discord.Embed(title="Pay Command", description=f"**Error!**\nThe Minecraft Account, `{data[0]}` cannot contain {charsfound}.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
-                return
-            elif not await mc_exists(data[0]):
-                await emb.edit(embed=discord.Embed(title="Pay Command",description=f"**Error!**\nThe user, <@{ctx.message.mentions[0].id}> has no Minecraft account connected!\nPlease ask the owner of the account to connect their MC account to their Discord, with `{prefix}connect` to enable this feature.",color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
-                return
-
+        emb = await ctx.respond(embed=discord.Embed(title="Pay Command", description="*Sending the Money, Please wait...*", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), ephemeral=True)
         user1 = await get_mc(ctx.author.id) # Get the username of the payer
-        if not len(data) == 2:    # If invalid number of arguments given
-            await emb.edit(embed=discord.Embed(title="Pay Command", description=f"**Error!**\nInvalid number of arguments. Expected `2` got `{len(data)}`", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+        user2 = await get_mc(user.id)    # Get the username of the payee
+        if user2 is None:
+            await emb.edit_original_message(embed=discord.Embed(title="Pay Command",description=f"**Error!**\nThe user, <@{user.id}> has no Minecraft account connected!\nPlease ask the owner of the account to connect their MC account to their Discord, with `{prefix}connect` to enable this feature.",color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
-        elif user1 is None:   # If the payer has no Minecraft account
-            await emb.edit(embed=discord.Embed(title="Change Password Command",description="**There was an Error!**\nThere is no Minecraft Account connected to your Discord.", color=discord.colour.Color.red()))
-            return
-        elif not data[1].isnumeric():   # If the amount is not a number
-            await emb.edit(embed=discord.Embed(title="Pay Command", description=f"**Error!**\nThe amount, `{data[1]}` is not a number.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
-            return
-
-        user2 = data[0]
-        amount = int(data[1])
-
         if user1 == user2:  # If the payer and payee are the same person
-            await emb.edit(embed=discord.Embed(title="Pay Command", description="**Error!**\nYou cannot pay yourself.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            await emb.edit_original_message(embed=discord.Embed(title="Pay Command", description="**Error!**\nYou cannot pay yourself.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
         try:
             await sendcmd(ctx, "survival", f"eco take {user1} {amount}")
@@ -234,14 +204,15 @@ class MC(commands.Cog):
             await sendcmd(ctx, "survival", f"msg {user2} Greetings!, {user1} has paid you ${amount}")
             await sendcmd(ctx, "survival", f"mail {user2} Greetings!, {user1} has paid you ${amount}")
         except:
-            await emb.edit(embed=discord.Embed(title="Pay Command", description="**There was an Error!**\nThere was an error while sending the command to the server. Please contact the mods.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            await emb.edit_original_message(embed=discord.Embed(title="Pay Command", description="**There was an Error!**\nThere was an error while sending the command to the server. Please contact the mods.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
-
         embd = discord.Embed(title="Pay Command", description=f"The operation was successful.", color=embed_color)
         embd.add_field(name="Payer", value=f"`{user1}`")
         embd.add_field(name="Payee", value=f"`{user2}`")
         embd.add_field(name="Amount", value=f"`{amount}`")
-        await emb.edit(embed=embd)
+        await emb.edit_original_message(embed=embd)
+        await user.send(f"You have received a payment of ${amount} from {user1}!")
+
 
 def setup(client):
     client.add_cog(MC(client))

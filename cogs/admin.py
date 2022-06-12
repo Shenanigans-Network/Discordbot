@@ -1,7 +1,9 @@
 import discord, sqlite3
 from discord.ext import commands
-from bot import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon
-from bot import checkcommandchannel, checkperm, logger, serverpower, sendcmd, get_permlvl, resetcount
+from bot import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon, guild_id
+from bot import checkperm, logger, serverpower, sendcmd, get_permlvl, resetcount, status
+from discord.commands import SlashCommandGroup
+
 
 class Admin(commands.Cog):
     """Commands meant for server admins only."""
@@ -14,6 +16,7 @@ class Admin(commands.Cog):
         self.prefix = prefix
         self.bot_version = bot_version
 
+    admin = SlashCommandGroup("admin", "Various commands meant for server admins only.")
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -22,248 +25,240 @@ class Admin(commands.Cog):
         print("Cog : Admin.py Loaded")
 
 
-    @commands.group(pass_context=True, invoke_without_command=True, aliases=['adminhelp'])
-    async def admin(self, ctx):
-        if await checkperm(ctx, 0): return
-        if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
-        # Base Admin-Help command embed
-        admin_help = discord.Embed(title="Admin Command", url="https://moonball.io", description=f"Use `{prefix}admin <module>` to execute the command\nModules Include - ```ini\n[changeServerState/css, resetcounter, helpcmd, helppw]```",color=embed_color)
-        admin_help.set_author(name=embed_header, icon_url=embed_icon)
-        admin_help.add_field(name="Prefix", value=f"The prefix is `{prefix}`", inline=True)
-        admin_help.add_field(name="Bot Version", value=f"{bot_version}", inline=True)
-        admin_help.add_field(name="Bot Dev", value="<@837584356988944396>", inline=True)
-        admin_help.add_field(name="Change Server State",value=f"Changes the state of the mentioned server, Can Start/Stop/Restart and Kill any server.\nTo learn more, do `{prefix}admin css`",inline=True)
-        admin_help.add_field(name="Send Command",value=f"Sends a command to any server mentioned with a simple syntax.\nTo learn more, do `{prefix}admin helpcmd`",inline=False)
-        admin_help.add_field(name="Add/Take Money",value=f"Give or Take money to/from a mentioned user (survival).\nTo learn more, do `{prefix}admin helptake/helpgive`",inline=False)
-        admin_help.add_field(name="Change Password",value=f"Changes the password of the user mentioned, right from Discord.\nTo learn more, do `{prefix}admin helppw`",inline=False)
-        admin_help.add_field(name="Permission Level", value=f"The permission level system allows easy management of giving specific command permissions to users.\n `{prefix}admin permlvl` to learn more! ",inline=True)
-        admin_help.add_field(name="Reset Command Counter",value=f"Resets a command counter from the 5 options with a single command.\n To learn more do `{prefix}admin resetcounter`",inline=False)
-        admin_help.set_footer(text=embed_footer)
-        await ctx.reply(embed=admin_help)
-        await logger("h", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}", "help",f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}")
+    # @commands.group(pass_context=True, invoke_without_command=True, aliases=['adminhelp'])
+    # async def admin(self, ctx):
+    #     if await checkperm(ctx, 0): return
+    #     if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
+    #     Base Admin-Help command embed
+        # admin_help = discord.Embed(title="Admin Command", url="https://moonball.io", description=f"Use `{prefix}admin <module>` to execute the command\nModules Include - ```ini\n[changeServerState/css, resetcounter, helpcmd, helppw]```",color=embed_color)
+        # admin_help.set_author(name=embed_header, icon_url=embed_icon)
+        # admin_help.add_field(name="Prefix", value=f"The prefix is `{prefix}`", inline=True)
+        # admin_help.add_field(name="Bot Version", value=f"{bot_version}", inline=True)
+        # admin_help.add_field(name="Bot Dev", value="<@837584356988944396>", inline=True)
+        # admin_help.add_field(name="Change Server State",value=f"Changes the state of the mentioned server, Can Start/Stop/Restart and Kill any server.\nTo learn more, do `{prefix}admin css`",inline=True)
+        # admin_help.add_field(name="Send Command",value=f"Sends a command to any server mentioned with a simple syntax.\nTo learn more, do `{prefix}admin helpcmd`",inline=False)
+        # admin_help.add_field(name="Add/Take Money",value=f"Give or Take money to/from a mentioned user (survival).\nTo learn more, do `{prefix}admin helptake/helpgive`",inline=False)
+        # admin_help.add_field(name="Change Password",value=f"Changes the password of the user mentioned, right from Discord.\nTo learn more, do `{prefix}admin helppw`",inline=False)
+        # admin_help.add_field(name="Permission Level", value=f"The permission level system allows easy management of giving specific command permissions to users.\n `{prefix}admin permlvl` to learn more! ",inline=True)
+        # admin_help.add_field(name="Reset Command Counter",value=f"Resets a command counter from the 5 options with a single command.\n To learn more do `{prefix}admin resetcounter`",inline=False)
+        # admin_help.set_footer(text=embed_footer)
+        # await ctx.reply(embed=admin_help)
+        # await logger("h", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}", "help",f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}")
 
 
 
     # Send Command to Server
-    @admin.command(aliases=['cmd', 'send', 'sendcmd'])
-    async def sendcmd_admin(self, ctx, *data):  # Send Command Admin Command
+    @admin.command(name="sendcmd", description="ADMIN: Sends Command to the given Backend Server", guild_ids=[guild_id])
+    async def sendcmd_admin(self, ctx, server: discord.Option(choices=[
+                                                             discord.OptionChoice("Survival", value="survival"),
+                                                             discord.OptionChoice("Bedwars", value="bedwars"),
+                                                             discord.OptionChoice("Duels", value="duels"),
+                                                             discord.OptionChoice("Skyblock", value="skyblock"),
+                                                             discord.OptionChoice("Prison", value="prison"),
+                                                             discord.OptionChoice("Parkour", value="parkour")
+                                                             ]), command: str):
         if await checkperm(ctx, 4): return
-        data = " ".join(data).split(' | ')  # Input Splitter
-        valid_names = ["proxy", "limbo", "parkour", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot"]
-        if data[0] not in valid_names:
-            await ctx.send("Invalid Name")
-            return "invalid_name"
-        if data[1] == "":
-            await ctx.send("Invalid command to send")
-            return "invalid_cmd"
         try:
-            p = await sendcmd(ctx, data[0], data[1])
-        except:
-            await ctx.reply("There was a error in sending the command")
+            p = await sendcmd(ctx, server.lower(), command)
+        except Exception as e:
+            await ctx.respond(f"There was a error while sending the command to the given server\nError - {e}", ephemeral=True)
             return
-        if p != "done": return
+        if p != "done":
+            return
         embed = discord.Embed(title="Admin - Send Command", url="https://moonball.io", color=embed_color)
         embed.set_author(name=embed_header, icon_url=embed_icon)
-        embed.add_field(name="Operation Successful!",value=f"Successfully Sent the Command. Issued by {ctx.author.name}#{ctx.author.discriminator} \n \n**Server** - `{data[0]}` \n **Command** - `{data[1]}`",inline=False)
+        embed.add_field(name="Operation Successful!",value=f"Successfully Sent the Command. Issued by {ctx.author.name}#{ctx.author.discriminator} \n \n**Server** - `{server}` \n **Command** - `{command}`",inline=False)
         embed.set_footer(text=embed_footer)
-        await ctx.reply(embed=embed)
+        await ctx.respond(embed=embed, ephemeral=True)
         await embed_log.send(embed=embed)
-        await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} sent a command to `{data[0]}`', "admin",f'{ctx.author.name}#{ctx.author.discriminator} sent a command to `{data[0]}\nCommand - ```ini\n{data[1]}```')
+        await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} sent a command to `{server}`', "admin",f'{ctx.author.name}#{ctx.author.discriminator} sent a command to `{server}\nCommand - ```ini\n{command}```')
 
 
 
     #
     # == Economy ==
     #
-
-    @admin.command(aliases=['takemoney', 'take', 'take_money'])
-    async def take_money_admin(self, ctx, *data):  # Take Money Admin Command
+    @admin.command(name="takemoney", description="ADMIN: Take Survival Money from a user", guild_ids=[guild_id])
+    async def take_money_admin(self, ctx, user: str,amount: int):  # Take Money Admin Command
         if await checkperm(ctx, 3): return
-        if len(data[0]) <= 3 or len(data[0]) >= 16:
+        if len(user) <= 3 or len(user) >= 16:
             await ctx.send("Invalid Username"); return "invalid_username"
-        elif not data[1].isnumeric():
-            await ctx.send("Invalid Amount"); return "invalid_amount"
         try:
-            p = await sendcmd(ctx, "survival", f"eco take {data[0]} {data[1]}")
-        except:
-            await ctx.reply("There was a error in sending the command")
+            p = await sendcmd(ctx, "survival", f"eco take {user} {amount}")
+        except Exception as e:
+            await ctx.respond(f"There was a error while sending the command\nError - {e}", ephemeral=True)
             return
         if p != "done": return
         embed = discord.Embed(title="Admin - Take Money", url="https://moonball.io", color=embed_color)
         embed.set_author(name=embed_header, icon_url=embed_icon)
-        embed.add_field(name="Operation Successful!",value=f"Successfully took {data[1]} from {data[0]} \n \n**User** - `{data[0]}` \n **Amount** - `{data[1]}`",inline=False)
+        embed.add_field(name="Operation Successful!",value=f"Successfully executed the command! \n \n**User** - `{user}` \n **Amount** - `{amount}`",inline=False)
         embed.set_footer(text=embed_footer)
-        await ctx.reply(embed=embed)
-        await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} took ${data[1]} from {data[0]}', "admin",f'{ctx.author.name}#{ctx.author.discriminator} took ${data[1]} from {data[0]}')
+        await ctx.respond(embed=embed, ephemeral=True)
+        await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} took ${amount} from {user}', "admin",f'{ctx.author.name}#{ctx.author.discriminator} took ${amount} from {user}')
 
 
-    @admin.command(aliases=['givemoney', 'give', 'give_money'])
-    async def give_money_admin(self, ctx, *data):  # Take Money Admin Command
+    @admin.command(name="givemoney", description="ADMIN: Give Survival Money to a user", guild_ids=[guild_id])
+    async def give_money_admin(self, ctx, user: str, amount: int):  # Take Money Admin Command
         if await checkperm(ctx, 3): return
-        if len(data[0]) < 3 or len(data[0]) > 16:
+        if len(user) < 3 or len(user) > 16:
             await ctx.send("Invalid User Name"); return
-        elif not data[1].isnumeric():
-            await ctx.send("Invalid Amount"); return
         try:
-            p = await sendcmd(ctx, "survival", f"eco give {data[0]} {data[1]}")
-        except:
-            await ctx.reply("There was a error in sending the command")
+            p = await sendcmd(ctx, "survival", f"eco give {user} {amount}")
+        except Exception as e:
+            await ctx.respond(f"There was a error in sending the command\nError - {e}", ephemeral=True)
             return
         if p != "done": return
         embed = discord.Embed(title="Admin - Take Money", url="https://moonball.io", color=embed_color)
         embed.set_author(name=embed_header, icon_url=embed_icon)
-        embed.add_field(name="Operation Successful!",value=f"Successfully gave {data[1]} from {data[0]} \n \n**User** - `{data[0]}` \n **Amount** - `{data[1]}`",inline=False)
+        embed.add_field(name="Operation Successful!",value=f"Successfully executed the command! \n \n**User** - `{user}` \n **Amount** - `{amount}`",inline=False)
         embed.set_footer(text=embed_footer)
-        await ctx.reply(embed=embed)
-        await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} gave ${data[1]} to {data[0]}', "admin",f'{ctx.author.name}#{ctx.author.discriminator} gave ${data[1]} to {data[0]}')
+        await ctx.respond(embed=embed, ephemeral=True)
+        await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} gave ${amount} to {user}', "admin",f'{ctx.author.name}#{ctx.author.discriminator} gave ${amount} to {user}')
 
 
     #
     # == Player Commands ==
     #
-
-    @admin.command(aliases=['changepw', 'changepassword', 'pw', 'password'])
-    async def changepw_admin(self, ctx, *data):  # Change Password Command
+    @admin.command(name="changeuserpw", description="ADMIN: Change the password of a given Minecraft User", guild_ids=[guild_id])
+    async def changepw_admin(self, ctx, user: str, pw: str):  # Change Password Command
         if await checkperm(ctx, 4): return
-        if len(data[0]) <= 3 or len(data[0]) >= 16:
-            await ctx.send("Invalid Username | Username must be between 3 and 16 characters")
+        if len(user) <= 3 or len(user) >= 16:
+            await ctx.respond("Invalid Username | Username must be between 3 and 16 characters", ephemeral=True)
             return "invalid_username"
-        # Format = +admin changepw | username | password
-        if len(data[1]) <= 5 or len(data[1]) >= 30:
-            await ctx.send("Invalid Password | Password must be between 6 and 30 characters")
+        if len(pw) <= 5 or len(pw) >= 30:
+            await ctx.respond("Invalid Password | Password must be between 6 and 30 characters", ephemeral=True)
             return "invalid_password"
-        cmd = f"authme cp {data[0]} {data[1]}"
+        cmd = f"authme cp {user} {pw}"
         try:
             p = await sendcmd(ctx, "auth", cmd)
         except:
-            await ctx.reply("There was a error in sending the command")
+            await ctx.respond("There was a error in sending the command", ephemeral=True)
             return
         if p != "done": return
         embed = discord.Embed(title="Admin - Change Password", url="https://moonball.io", color=embed_color)
         embed.set_author(name=embed_header, icon_url=embed_icon)
-        embed.add_field(name="Operation Successful!",value=f"Successfully Changed the Password. Issued by {ctx.author.name}#{ctx.author.discriminator} \n \n**Player** - `{data[0]}` \n **Password** - ||{data[1]}||",inline=False)
+        embed.add_field(name="Operation Successful!",value=f"Successfully Changed the Password. Issued by {ctx.author.name}#{ctx.author.discriminator} \n \n**Player** - `{user}` \n **Password** - ||{pw}||", inline=False)
         embed.set_footer(text=embed_footer)
-        await ctx.reply(embed=embed)
+        await ctx.respond(embed=embed, ephemeral=True)
         await embed_log.send(embed=embed)  # Sending it to the Logs channel
-        await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} changed the password of {data[0]}', "admin",f'{ctx.author.name}#{ctx.author.discriminator} changed the password of {data[0]}')
+        await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} changed the password of {user}', "admin",f'{ctx.author.name}#{ctx.author.discriminator} changed the password of {user}')
 
 
-    @admin.command(aliases=['unreg', 'ureg', 'unregister'])
-    async def unreg_admin(self, ctx, *data):  # Change Password Command
+    @admin.command(name="unreg", description="ADMIN: Unregister the Given User (AuthMe)", guild_ids=[guild_id])
+    async def unreg_admin(self, ctx, user: str):  # Change Password Command
         if await checkperm(ctx, 4): return
-        if len(data[0]) <= 3 or len(data[0]) >= 16:
+        if len(user) <= 3 or len(user) >= 16:
             await ctx.send("Invalid Username | Username must be between 3 and 16 characters")
             return "invalid_username"
         try:
-            p = await sendcmd(ctx, "auth", f"authme unreg {data[0]}")
-        except:
-            await ctx.reply("There was a error in sending the command")
+            p = await sendcmd(ctx, "auth", f"authme unreg {user}")
+        except Exception as e:
+            await ctx.respond(f"There was a error in sending the command\nError - {e}", ephemeral=True)
             return
         if p != "done":
             return
         embed = discord.Embed(title="Admin - Change Password", url="https://moonball.io", color=embed_color)
         embed.set_author(name=embed_header, icon_url=embed_icon)
-        embed.add_field(name="Operation Successful!", value=f"Successfully Unregistered User. Issued by {ctx.author.name}#{ctx.author.discriminator} \n \n**Player** - `{data[0]}`", inline=False)
+        embed.add_field(name="Operation Successful!", value=f"Successfully Unregistered User. Issued by {ctx.author.name}#{ctx.author.discriminator} \n \n**Player** - `{user}`", inline=False)
         embed.set_footer(text=embed_footer)
-        await ctx.reply(embed=embed)
+        await ctx.respond(embed=embed, ephemeral=True)
         await embed_log.send(embed=embed)  # Sending it to the Logs channel
-        await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} Unregistered {data[0]}', "admin",f'{ctx.author.name}#{ctx.author.discriminator} unregistered {data[0]}')
+        await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} Unregistered {user}', "admin",f'{ctx.author.name}#{ctx.author.discriminator} unregistered {user}')
 
 
 
     #
     # == Power Commands ==
     #
-
-    @admin.command(aliases=['startserver', 'serverstart', 'ss', 'start'])
-    async def start_admin(self, ctx, *data):  # Start Server Command
+    @admin.command(name="power", description="ADMIN: Start/Stop/Restart or kill a given backend server.", guild_ids=[guild_id])
+    async def power_admin(self, ctx,
+                          power: discord.Option(choices=[
+                                                        discord.OptionChoice("Start", value="start"),
+                                                        discord.OptionChoice("Stop", value="stop"),
+                                                        discord.OptionChoice("Restart", value="restart"),
+                                                        discord.OptionChoice("Kill", value="kill"),
+                                                        ]),
+                          server: discord.Option(choices=[
+                                                          discord.OptionChoice("Survival", value="survival"),
+                                                          discord.OptionChoice("Bedwars", value="bedwars"),
+                                                          discord.OptionChoice("Duels", value="duels"),
+                                                          discord.OptionChoice("Skyblock", value="skyblock"),
+                                                          discord.OptionChoice("Prison", value="prison"),
+                                                          discord.OptionChoice("Parkour", value="parkour")
+                                                          ]),
+                          ):  # Start Server Command
         if await checkperm(ctx, 2): return
-        msg = await ctx.reply(embed=discord.Embed(title=f"{data[0].capitalize()} Power", description="*Server Power is being changed*\nPlease hold on!", color=embed_color))
-        valid_names = ["proxy", "limbo", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot", "parkour"]
-        if data[0] not in valid_names:
-            await msg.edit(embed=discord.Embed(title=f"{data[0].capitalize()} Power", description=f"**There was an error!**\nInvalid Server name!. `{prefix}help css` to learn more!", color=embed_color))
+        msg = await ctx.respond(embed=discord.Embed(title=f"Power | {server.capitalize()}", description="*Server Power is being changed...*\nPlease hold on!", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), ephemeral=True)
+
+        e = await status(server)
+        serverstatus = e["state"]  # Gets its state
+
+        # Checks if specific conditions are true
+        if serverstatus == "running" and power == "start":
+            await msg.edit_original_message(embed=discord.Embed(title=f"Power | {server.capitalize()}", description=f"**The Server, {server.capitalize()} is already running!**", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
-        try:
-            e = await serverpower(data[0], "start", ctx)
-        except:
-            await msg.edit(embed=discord.Embed(title=f"{data[0].capitalize()} Power - Error", description=f"**There was an error!**\nUse `{prefix}admin css` to learn more~", color=embed_color))
+        elif serverstatus == "offline" and power == "stop":
+            await msg.edit_original_message(embed=discord.Embed(title=f"Power | {server.capitalize()}", description=f"**The Server, {server.capitalize()} is already offline!**", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
-        if e == "exception":
+        elif serverstatus == "offline" and power == "kill":
+            await msg.edit_original_message(embed=discord.Embed(title=f"Power | {server.capitalize()}", description=f"**The Server, {server.capitalize()} is already offline!**", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
+        elif serverstatus == "starting" and power == "start":
+            await msg.edit_original_message(embed=discord.Embed(title=f"Power | {server.capitalize()}", description=f"**The Server, {server.capitalize()} is already starting!**", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            return
+        elif serverstatus == "stopping" and power == "stop":
+            await msg.edit_original_message(embed=discord.Embed(title=f"Power | {server.capitalize()}", description=f"**The Server, {server.capitalize()} is already stopping!**", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            return
+
+        # Creating button class
+        # class View(discord.ui.View):  # Create a class called View that subclasses discord.ui.View
+        #     def __init__(self, author):
+        #         self.author = author
+        #         super().__init__()
+        #     @discord.ui.button(label="Confirm!", style=discord.ButtonStyle.red,
+        #                        emoji="❗")
+        #     async def button_callback(self, button, interaction):
+        #         await interaction.response.send_message("You have confirmed the action, beginning")  # Send a message when the button is clicked
+        #         try:
+        #             await serverpower(server, power)
+        #         except Exception as e:
+        #             await msg.edit_original_message(embed=discord.Embed(title=f"Power | {server.capitalize()}",
+        #                                                                 description=f"**There was an error!**\nError - {e}",
+        #                                                                 color=embed_color))
+        #             return
+        #     async def interaction_check(self, interaction: discord.Interaction):
+        #         return interaction.user.id == self.author.id
+        #
+        # playerCount = 0
+        # server =     #Gets server player-info from API
+        # if power in ["stop", "restart", "kill"]:
+        #     if not server in ["proxy", "auth", "limbo", "lobby"]:
+        #         try:
+        #             playerCount = JavaServer.lookup(serv_ips.get(server)).query().players.online
+        #         except Exception as e:
+        #             print(f"There was an error trying to get the player count of the server. The panel is perhaps down. I'll continue with it being 0. Error - {e}")
+        #
+        #     if playerCount != 0:
+        #         await msg.edit_original_message(embed=discord.Embed(title=f"Power | {server.capitalize()}", description=f"**Warning** - There are {playerCount} players on the server.\nIf you continue, they will be kicked.", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), view=View(ctx.author))
+        # else:
+        #     try:
+        #         a = await serverpower(server, power)
+        #     except Exception as e:
+        #         await msg.edit_original_message(embed=discord.Embed(title=f"Power | {server.capitalize()}",
+        #                                                         description=f"**There was an error!**\nError - {e}",
+        #                                                         color=embed_color))
+        #         return
+        # if e == "exception":
+        #     return
+        await serverpower(server, power)
+
         embed = discord.Embed(title="Server Power", url="https://moonball.io/", color=embed_color)
         embed.set_author(name=embed_header, icon_url=embed_icon)
-        embed.add_field(name=f'Operation Successful!', value=f'Successfully Started the {data[0].capitalize()} Server!',inline=False)
+        embed.add_field(name=f'Operation Successful!', value=f'Successfully Started the {server.capitalize()} Server!',inline=False)
         embed.set_footer(text=embed_footer)
-        await msg.edit(embed=embed)
-        await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} started server {data[0]}', "admin",f'{ctx.author.name}#{ctx.author.discriminator} started server {data[0]}')
+        await msg.edit_original_message(embed=embed)
+        await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} started server {server}', "admin",f'{ctx.author.name}#{ctx.author.discriminator} started server {server}')
 
-
-    @admin.command(aliases=['stopserver', 'serverstop', 'sts', 'stop'])
-    async def stop_admin(self, ctx, *data):  # Stop Server Command
-        if await checkperm(ctx, 3): return
-        msg = await ctx.reply(embed=discord.Embed(title=f"{data[0].capitalize()} Power",description="*Server Power is being changed*\nPlease hold on!",color=embed_color))
-        valid_names = ["proxy", "limbo", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot", "parkour"]
-        if data[0] not in valid_names:
-            await msg.edit(embed=discord.Embed(title=f"{data[0].capitalize()} Power", description=f"**There was an error!**\nInvalid Server name!. `{prefix}help css` to learn more!", color=embed_color))
-            return
-        try:
-            e = await serverpower(data[0], "stop", ctx)
-        except:
-            await msg.edit(embed=discord.Embed(title=f"{data[0].capitalize()} Power - Error", description=f"**There was an error!**\nUse `{prefix}admin css` to learn more~", color=embed_color))
-            return
-        if e == "exception":
-            return
-        embed = discord.Embed(title="Server Power", url="https://moonball.io/", color=embed_color)
-        embed.set_author(name=f"{embed_header}")
-        embed.add_field(name=f'Operation Successful!', value=f'Successfully Stopped the {data[0].capitalize()} Server!',inline=False)
-        embed.set_footer(text=f"{embed_footer}")
-        await msg.edit(embed=embed)
-        await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} stopped server {data[0]}', "admin",f'{ctx.author.name}#{ctx.author.discriminator} stopped server {data[0]}')
-
-
-    @admin.command(aliases=['restartserver', 'serverrestart', 'rs', 'restart'])
-    async def restart_admin(self, ctx, *data):  # Restart Server Command
-        if await checkperm(ctx, 2): return
-        msg = await ctx.reply(embed=discord.Embed(title=f"{data[0].capitalize()} Power",description="*Server Power is being changed*\nPlease hold on!",color=embed_color))
-        valid_names = ["proxy", "limbo", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot", "parkour"]
-        if data[0] not in valid_names:
-            await msg.edit(embed=discord.Embed(title=f"{data[0].capitalize()} Power", description=f"**There was an error!**\nInvalid Server name!. `{prefix}help css` to learn more!", color=embed_color))
-            return
-        try:
-            e = await serverpower(data[0], "restart", ctx)
-        except:
-            await msg.edit(embed=discord.Embed(title=f"{data[0].capitalize()} Power - Error", description=f"**There was an error!**\nUse `{prefix}admin css` to learn more~", color=embed_color))
-            return
-        if e == "exception":
-            return
-        embed = discord.Embed(title="Server Power", url="https://moonball.io/", color=embed_color)
-        embed.set_author(name=embed_header, icon_url=embed_icon)
-        embed.add_field(name=f'Operation Successful!',value=f'Successfully Restarted the {data[0].capitalize()} Server!', inline=False)
-        embed.set_footer(text=embed_footer)
-        await msg.edit(embed=embed)
-        await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} restarted server {data[0]}', "admin",f'{ctx.author.name}#{ctx.author.discriminator} restarted server {data[0]}')
-
-
-    @admin.command(aliases=['killserver', 'serverkill', 'sk', 'kill'])
-    async def kill_admin(self, ctx, *data):  # Kill Server Command
-        if await checkperm(ctx, 3): return
-        msg = await ctx.reply(embed=discord.Embed(title=f"{data[0].capitalize()} Power", description="*Server Power is being changed*\nPlease hold on!", color=embed_color))
-        valid_names = ["proxy", "limbo", "auth", "lobby", "survival", "skyblock", "duels", "bedwars", "bot", "parkour"]
-        if data[0] not in valid_names:
-            await msg.edit(embed=discord.Embed(title=f"{data[0].capitalize()} Power", description=f"**There was an error!**\nInvalid Server name!. `{prefix}help css` to learn more!", color=embed_color))
-            return
-        try:
-            e = await serverpower(data[0], "kill", ctx)
-        except:
-            await msg.edit(embed=discord.Embed(title=f"{data[0].capitalize()} Power - Error", description=f"**There was an error!**\nUse `{prefix}admin css` to learn more~", color=embed_color))
-            return
-        if e == "exception": return
-        killembed = discord.Embed(title="Server Power", url="https://moonball.io/", color=embed_color)
-        killembed.set_author(name=embed_header, icon_url=embed_icon)
-        killembed.add_field(name=f'Operation Successful!',value=f"Successfully Killed the {data[0].capitalize()} Server!", inline=False)
-        killembed.set_footer(text=embed_footer)
-        await msg.edit(embed=killembed)
-        await logger("a", f'{ctx.author.name}#{ctx.author.discriminator} killed server {data[0]}', "admin",f'{ctx.author.name}#{ctx.author.discriminator} killed server {data[0]}')
 
 
 
@@ -271,104 +266,101 @@ class Admin(commands.Cog):
     # == Permission Level ==
     #
 
-    @admin.command(aliases=['setlvl', "setlevel", "sl"])
-    async def set_level(self, ctx, *data):  # Set Level Command
+    @admin.command(name="setlvl", description="ADMIN: Set the permission level of the mentioned user", guild_ids=[guild_id])
+    async def set_level(self, ctx, user: discord.Member, level: int):  # Set Level Command
         if await checkperm(ctx, 4): return
-        msg = await ctx.reply(embed=discord.Embed(title="Set Level", description=f"*Setting the level*\nPlease hold on!", color=embed_color))
-        # User = ctx.message.mentions[0].id
-        # Level = data[0]
-        if len(data) != 2:
-            await msg.edit(embed=discord.Embed(title="Set Level - Error", description=f"**Error : Missing/Extra Argument**\nUse `{prefix}admin setlvl <user> <level>` to set a user's level or {prefix}admin permlvl", color=embed_color))
-            return
-        elif not ctx.message.mentions:
-            await msg.edit(embed=discord.Embed(title="Set Level - Error", description=f"**Error : Missing @Mention**\nPlease @mention a user too! or {prefix}admin permlvl", color=embed_color))
-            return
-        elif -1 < int(data[1]) > 5:
+        msg = await ctx.respond(embed=discord.Embed(title="Set Level", description=f"*Setting the level*\nPlease hold on!", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), ephemeral=True)
+        if -1 < int(level) > 5:
             await msg.edit(embed=discord.Embed(title="Set Level - Error", description=f"**Error : Invalid Level**\nThe level of a user may be between `-1` and `5`! or {prefix}admin permlvl", color=embed_color))
             return
         con = sqlite3.connect('./data/data.db')
         cur = con.cursor()
-        old_level = await get_permlvl(ctx.message.mentions[0])
-        cur.execute(f"UPDATE perms SET lvl = {data[1]} WHERE user_id = {ctx.message.mentions[0].id}")
+        old_level = await get_permlvl(user.id, class_type=False)
+        cur.execute(f"UPDATE perms SET lvl = {level} WHERE user_id = '{user}';")
         con.commit()
         con.close()
         perm_embed = discord.Embed(title="Permission Level", description=f"Permission Level successfully changed!",color=embed_color)
         perm_embed.set_author(name=embed_header, icon_url=embed_icon)
         perm_embed.set_footer(text=embed_footer)
-        perm_embed.add_field(name="User",value=f"`{ctx.message.mentions[0].name}#{ctx.message.mentions[0].discriminator}`", inline=False)
+        perm_embed.add_field(name="User",value=f"`{user.name}#{user.discriminator}`", inline=False)
         perm_embed.add_field(name="Old Level", value=f"`{old_level}`", inline=True)
-        perm_embed.add_field(name="New Level", value=f"`{data[1]}`", inline=True)
-        await msg.edit(embed=perm_embed)
-        await logger("a", f"{ctx.message.mentions[0].name}#{ctx.message.mentions[0].discriminator}'s permission level has been set to {data[1]} from {old_level}","admin",f"{ctx.message.mentions[0].name}#{ctx.message.mentions[0].discriminator}'s permission level has been set to {data[1]} from {old_level}")  # Logs to Log channel
+        perm_embed.add_field(name="New Level", value=f"`{level}`", inline=True)
+        await msg.edit_original_message(embed=perm_embed)
+        await logger("a", f"{user.name}#{user.discriminator}'s permission level has been set to {level} from {old_level}", "admin", f"{user.name}#{user.discriminator}'s permission level has been set to {level} from {old_level}")  # Logs to Log channel
 
 
-    @admin.command(aliases=['getlvl', "getlevel", "gl"])
-    async def get_level(self, ctx):  # Get Level Command
+    @commands.slash_command(name="getlvl", description="Get the permission level of the mentioned user", guild_ids=[guild_id])
+    async def get_level(self, ctx, user: discord.Member):  # Get Level Command
         if await checkperm(ctx, 0): return
         level_embed = discord.Embed(title="Permission Level", description=f"Got the Permission Level!", color=embed_color)
         level_embed.set_author(name=embed_header, icon_url=embed_icon)
         level_embed.set_footer(text=embed_footer)
-        level_embed.add_field(name="User",value=f"`{ctx.message.mentions[0].name}#{ctx.message.mentions[0].discriminator}`", inline=False)
-        level_embed.add_field(name="Level", value=f"`{await get_permlvl(ctx.message.mentions[0])}`", inline=True)
-        await ctx.reply(embed=level_embed)
-        await logger("a", f"{ctx.author.name}#{ctx.author.discriminator} requested the Permission Level of {ctx.message.mentions[0].name}#{ctx.message.mentions[0].discriminator}","admin",f"{ctx.author.name}#{ctx.author.discriminator} requested the Permission Level of {ctx.message.mentions[0].name}#{ctx.message.mentions[0].discriminator}")  # Logs to Log channel
+        level_embed.add_field(name="User",value=f"`{user.name}#{user.discriminator}`", inline=False)
+        level_embed.add_field(name="Level", value=f"`{await get_permlvl(user.id, class_type=False)}`", inline=True)
+        await ctx.respond(embed=level_embed, ephemeral=True)
+        await logger("a", f"{ctx.author.name}#{ctx.author.discriminator} requested the Permission Level of {user.name}#{user.discriminator}","admin",f"{ctx.author.name}#{ctx.author.discriminator} requested the Permission Level of {user.name}#{user.discriminator}")  # Logs to Log channel
 
 
     #
     #   == Connection Commands ==
     #
 
-    @admin.command(aliases=['discon'])
-    async def disconnect(self, ctx, *data):
+    @admin.command(name="disconnectuser", description="ADMIN: Disconnect a Minecraft Account", guild_ids=[guild_id])
+    async def disconnect(self, ctx, username: str):
         if await checkperm(ctx, 3): return
-        msg = await ctx.reply(embed=discord.Embed(title="Disconnect MC Account", description=f"*Disconnecting Account, Please hold on...*", color=embed_color))
-        if len(data) != 1:
-            await msg.edit(embed=discord.Embed(title="Disconnect MC Account", description="**There was an Error!**\nYou didn't provide the correct arguments.", color=discord.colour.Color.red()))
-            return
-        username = data[0].lower()
+        msg = await ctx.respond(embed=discord.Embed(title="Disconnect MC Account", description=f"*Disconnecting Account, Please hold on...*", color=embed_color), ephemeral=True)
         con = sqlite3.connect('./data/data.db')
         c = con.cursor()
-        c.execute(f"SELECT disc_id FROM connection WHERE mc_username = '{username.lower()}';")
+        c.execute(f"SELECT disc_id FROM connection WHERE mc_username = '{username}';")
         result = c.fetchone()
         if not result:
-            await msg.edit(embed=discord.Embed(title="Disconnect MC Account", description="**There was an Error!**\nYou didn't connect your Minecraft account to your Discord account.", color=discord.colour.Color.red()))
+            await msg.edit_original_message(embed=discord.Embed(title="Disconnect MC Account", description="**There was an Error!**\nYou didn't connect your Minecraft account to your Discord account.", color=discord.colour.Color.red()))
             return
-        c.execute(f"DELETE FROM connection WHERE mc_username = '{username.lower()}';")
+        c.execute(f"DELETE FROM connection WHERE mc_username = '{username}';")
         con.commit()
         con.close()
         discon_embed = discord.Embed(title="Disconnect MC Account", description=f"**Success!**\nThe Minecraft account has been disconnected from the Discord account.", color=embed_color)
         discon_embed.set_footer(text=embed_footer)
         discon_embed.set_author(name=embed_header, icon_url=embed_icon)
         discon_embed.add_field(name="Username", value=f"`{username}`", inline=True)
-        await ctx.send(embed=discon_embed)
+        await msg.edit_original_message(embed=discon_embed)
 
     #
     #   == Other ==
     #
 
-    @admin.command(aliases=['reset', 'resetcount', "rc"])
-    async def reset_admin(self, ctx, *data):  # Reset Counter Command
+    @admin.command(name="resetcount", description="ADMIN: Reset a bot command counter", guild_ids=[guild_id])
+    async def reset_admin(self, ctx, counter: discord.Option(choices=[
+                                     discord.OptionChoice("All", value="all"),
+                                     discord.OptionChoice("Suggestion", value="suggestion"),
+                                     discord.OptionChoice("Help", value="help"),
+                                     discord.OptionChoice("Info", value="info"),
+                                     discord.OptionChoice("Fun", value="fun"),
+                                     discord.OptionChoice("Admin", value="admin")
+                                     ])
+                          ):  # Reset Counter Command
         if await checkperm(ctx, 5): return
-        if data[0] == "all":
+        if counter == "all":
             await resetcount(ctx, "all", "all")
-        elif data[0] == "suggestion" or data[0] == "s":
+        elif counter == "suggestion" or counter == "s":
             await resetcount(ctx, "s", "suggestion")
-        elif data[0] == "help" or data[0] == "h":
+        elif counter == "help" or counter == "h":
             await resetcount(ctx, "h", "help")
-        elif data[0] == "info" or data[0] == "i":
+        elif counter == "info" or counter == "i":
             await resetcount(ctx, "i", "info")
-        elif data[0] == "fun" or data[0] == "f":
+        elif counter == "fun" or counter == "f":
             await resetcount(ctx, "f", "fun")
-        elif data[0] == "admin" or data[0] == "a":
+        elif counter == "admin" or counter == "a":
             await resetcount(ctx, "a", "admin")
+        emb = discord.Embed(title="Reset Counter", description=f"**Success!**\nThe counter has been reset!", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
+        await ctx.respond(embed=emb, ephemeral=True)
 
-    @admin.command(aliases=['presence', 'cp'])
-    async def change_presence(self, ctx, *data):
+
+    @admin.command(name="changepresence", description="ADMIN: Change the bot's Presence", guild_ids=[guild_id])
+    async def change_presence(self, ctx, new_presence: str):
         if await checkperm(ctx, 3): return
-        data = " ".join(data)
-        await self.client.change_presence(activity=discord.Game(data))  # Set Presence
-        await ctx.reply(embed=discord.Embed(title="Change Presence", description="**Success!**\nThe status has been changed.", color=embed_color))
-
+        await self.client.change_presence(activity=discord.Game(new_presence))  # Set Presence
+        await ctx.respond(embed=discord.Embed(title="Change Presence", description="**Success!**\nThe status has been changed.", color=embed_color), ephemeral=True)
 
 
 
@@ -376,7 +368,7 @@ class Admin(commands.Cog):
 #
 #   Admin Help
 #
-
+    """
     @admin.command(aliases=['resetcounter'])  # Help reset counter
     async def resetcounter_admin(self, ctx):
         if await checkperm(ctx, 0): return
@@ -487,7 +479,8 @@ class Admin(commands.Cog):
         bothelp.set_author(name=embed_header, icon_url=embed_icon)
         await ctx.reply(embed=bothelp)
         await logger("h", f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}", "help",f"Sent Admin Help Embed to message of {ctx.author.name}#{ctx.author.discriminator}")  # Logs to Log channel
-
+"""
 
 def setup(client):
     client.add_cog(Admin(client))
+

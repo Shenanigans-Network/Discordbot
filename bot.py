@@ -19,10 +19,9 @@
 
 import discord, requests, json, sqlite3, os, asyncio
 from discord.ext import commands  # Imports required Modules
-from mcstatus import MinecraftServer
+from mcstatus import JavaServer
 from dotenv import load_dotenv
 from pathlib import Path
-from discord.commands import SlashCommand
 
 
 intents = discord.Intents.all()
@@ -33,9 +32,10 @@ load_dotenv(dotenv_path=Path('data/.env'))
 # Assigning Global Variables
 #
 
-bot_version = "0.4.5"              # Bot Version
+bot_version = "0.5"              # Bot Version
 prefix = "+"                            # Bot Prefix
 ptero_apikey = os.getenv("PTERO_KEY")   # Getting Pterodactyl API Key
+guild_id = 894902529039687720
 serv_ips = {'proxy': '192.186.100.60:25565', 'limbo': '192.168.100.60:25566', 'auth': '192.168.100.60:25567',
             'lobby': '192.168.100.60:25568', 'survival': '192.168.100.80:25569', 'bedwars': '192.168.100.70:25570',
             'duels': '192.168.100.60:25571', 'skyblock': '192.168.100.70:25572', 'prison': '192.168.100.60:25573',
@@ -112,8 +112,8 @@ async def version_embed(ctx):
     if await checkperm(ctx, 0): return
     vembed = discord.Embed(title="Here's the Server Version!", url="https://moonball.io", color=embed_color).set_footer(text=embed_footer)
     vembed.set_author(name=embed_header, icon_url=embed_icon)
-    vembed.add_field(name="Java ", value="1.13 - 1.18.2", inline=True)
-    vembed.add_field(name="Bedrock ", value="1.17.40 - 1.18.30", inline=False)
+    vembed.add_field(name="Java ", value="1.13 - 1.19", inline=True)
+    vembed.add_field(name="Bedrock ", value="1.17.40 - 1.19.0", inline=False)
     await ctx.reply(embed=vembed)
     print(f'Sent Version Embed to message of {ctx.author.name}#{ctx.author.discriminator}')  # Logs to Console
     await logger("i", f'Sent Version Embed to message of {ctx.author.name}#{ctx.author.discriminator}', "info", f"Sent Version embed to message of {ctx.author.name}#{ctx.author.discriminator}")
@@ -124,7 +124,7 @@ async def version_embed(ctx):
 
 async def serverstatus(ctx, st_server):  # Server Status front end
     if await checkperm(ctx, 0): return
-    server = MinecraftServer.lookup(serv_ips.get(st_server.lower()))  # Gets server player-info from API
+    server = JavaServer.lookup(serv_ips.get(st_server.lower()))  # Gets server player-info from API
     msg = await ctx.reply(embed=discord.Embed(title=f"{st_server.capitalize()} Server Status",description="*Server Status is loading*\nPlease hold on!",color=embed_color))
     try:
         server_info = await status(st_server.lower())  # Gets server info from Pterodactyl API
@@ -211,8 +211,8 @@ async def checkcommandchannel(ctx) -> bool:  # Check if the channel in which a c
             # await ctx.reply(f"Ugh fine. I guess I'll let you use bot commands here, since you're a staff member- :rolling_eyes:")
             return False
         else:
-            await ctx.reply(f"Please execute commands only in <#{cmd_channel}>", delete_after=10.0)
-            await ctx.message.add_reaction("<:cross_bot:953561649254649866>")
+            await ctx.respond(f"Please execute commands only in <#{cmd_channel}>", ephemeral=True)
+            # await ctx.message.add_reaction("<:cross_bot:953561649254649866>")
             return True
     else:
         return False
@@ -250,11 +250,13 @@ async def resetcount(ctx, kw, name):  # Counter Add Function
 def form_dict(stats):  # Takes raw data from the Pterodactyl API and converts it into usable variables
     placeholders = {}
     ph_keys = ["state", "memUsage", "cpuUsage", "spaceOccupied", "uptime"]
-    ph_values = [stats["attributes"]["current_state"],
+    ph_values = [
+        stats["attributes"]["current_state"],
                  str(round(stats["attributes"]["resources"]["memory_bytes"] / 1073741824, 2)) + " GB",
                  str(round(stats["attributes"]["resources"]["cpu_absolute"], 2)),
                  str(round(stats["attributes"]["resources"]["disk_bytes"] / 1073741824, 2)) + " GB",
-                 str(round(stats["attributes"]["resources"]["uptime"] / 3600000, 2)) + " hour(s)"]
+                 str(round(stats["attributes"]["resources"]["uptime"] / 3600000, 2)) + " hour(s)"
+    ]
     for ind, ph_key in enumerate(ph_keys): placeholders[ph_key] = ph_values[ind]
     return placeholders
 
@@ -324,62 +326,13 @@ async def server_status():
 # Server Power BACKEND
 #
 
-async def serverpower(servername, power, ctx):
+async def serverpower(servername, power):
     ptero_panel = "panel.moonball.io"  # Put your Ptero Panel's URL here
     server_guide = {'proxy': 'fe5a4fe1', 'limbo': "d1e50e31", 'auth': 'e91b165c', 'lobby': 'b7b7c4b3',
                     'survival': '777f305b', 'skyblock': '33cbad29', 'duels': '04cc6bb3', 'bedwars': '583e6fbc',
                     'bot': '5426b68e', 'parkour': '10770164', 'prison': 'a321d8fa'}
     # Add your server name and the Pterodactyl identifier (in https://panel.moonball.io/server/5426b68e "5426b68e" is the ID)
 
-    placeholder = await status(servername)  # Gets server info
-    serverstatus = placeholder["state"]  # Gets its state
-
-    # Checks if specific conditions are true
-    if serverstatus == "running" and power == "start":
-        await ctx.reply(f"The server, `{servername.capitalize()}` is already running!")
-        return "exception"
-    elif serverstatus == "offline" and power == "stop":
-        await ctx.reply(f"The server, `{servername.capitalize()}` is already off")
-        return "exception"
-    elif serverstatus == "offline" and power == "kill":
-        await ctx.reply(f"The server, `{servername.capitalize()}` is already off")
-        return "exception"
-    elif serverstatus == "starting" and power == "start":
-        await ctx.reply(f"The server, `{servername.capitalize()}` is already starting")
-        return "exception"
-    elif serverstatus == "stopping" and power == "stop":
-        await ctx.reply(f"The server, `{servername.capitalize()}` is already stopping")
-        return "exception"
-    elif servername == "bot":
-        await ctx.reply(f"I can't do anything to myself.")
-        return "exception"
-
-    playerCount = 0
-    # server =     #Gets server player-info from API
-    if power in ["stop", "restart", "kill"]:
-        if not servername in ["proxy", "auth", "limbo", "lobby"]:
-            try:
-                playerCount = MinecraftServer.lookup(serv_ips.get(servername)).query().players.online
-            except:
-                await ctx.send("There was an error trying to get the player count of the server. The panel is perhaps down. Anyways ill continue with it being 0")
-
-
-    if power in ["stop", "kill", "restart"]:
-        if playerCount != 0:
-            sent_message = await ctx.reply(f"There are {playerCount} Player(s) Online!. Are you sure you want to proceed with the destructive action? If you do wish to, say `yes`\n*Waiting for a Response...*")
-            try:
-                res = await client.wait_for("message",
-                check=lambda x: x.channel.id == ctx.channel.id
-                                and ctx.author.id == x.author.id
-                                and x.content.lower() == "yes", timeout=30)
-            except asyncio.TimeoutError:
-                await sent_message.edit("You took too long to respond or didn't say `yes`. The action has been cancelled.")
-                return
-
-            if res.content.lower() == "yes":
-                await ctx.reply("Okay! As you wish, master. Here I begin!")
-            else:
-                return
 
     url = f'https://{ptero_panel}/api/client/servers/{server_guide.get(servername)}/power'
     headers = {"Authorization": f"Bearer {ptero_apikey}", "Accept": "application/json", "Content-Type": "application/json"}
@@ -394,6 +347,9 @@ async def serverpower(servername, power, ctx):
     else:
         return "invalid_power"
 
+    # if power in ["start", "stop", "restart", "kill"]:
+    #     payload = '{"signal": power}'
+    #     print(payload)
     response = requests.request('POST', url, data=payload, headers=headers)
     return response.text
 
@@ -438,7 +394,7 @@ async def get_permlvl(user, class_type=True) -> -1 | 0 | 1 | 2 | 3 | 4 | 5:
 async def checkperm(ctx, level) -> bool:
     currentlvl = await get_permlvl(ctx.author, True)
     if int(currentlvl) < int(level):
-        await ctx.reply(f"You don't have the required permissions to use this command. You have permission level `{currentlvl}`, but required level is `{level}`!", delete_after=10)
+        await ctx.respond(f"You don't have the required permissions to use this command. You have permission level `{currentlvl}`, but required level is `{level}`!", delete_after=10)
         return True
     else:
         return False

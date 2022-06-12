@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
-from bot import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon    # Import bot variables
-from bot import checkcommandchannel, checkperm, logger                                      # Import functions
+from bot import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon, guild_id    # Import bot variables
+from bot import checkcommandchannel, checkperm, logger                                     # Import functions
 
 
 class Info(commands.Cog):
@@ -20,40 +20,35 @@ class Info(commands.Cog):
     async def on_ready(self):
         print("Cog : Info.py Loaded")
 
-
-    @commands.command(name="shop", help="Sends a link to the Moonball Network's Shop")
+    @commands.slash_command(name="shop", description="Sends a URL to the Moonball Shop", guild_ids=[guild_id])
     async def shop(self, ctx):
         if await checkperm(ctx, 0): return
-        await ctx.reply("Visit our shop here!- \nhttps://shop.moonball.io")
+        await ctx.respond("Visit our shop here!- \nhttps://shop.moonball.io")
         await logger("i", f"Sent Shop link to message of {ctx.author.name}#{ctx.author.discriminator}", "info", f"Sent Shop link to message of {ctx.author.name}#{ctx.author.discriminator}")
 
-
-    @commands.command(name="opensource", help="Sends a link to the Moonball Network's Discord Bot's Open Source Repository")
+    @commands.slash_command(name="opensource", description="Sends a link to the Moonball Network's Discord Bot's Open Source Repository", guild_ids=[guild_id])
     async def opensource(self, ctx):
         if await checkperm(ctx, 0): return
         await checkcommandchannel(ctx)
-        await ctx.reply(f"This Discord Bot is opensource and made with discord.py.\nIf you would like to check out the source code, Visit the GitHub Repo here - https://moonball.io/opensource")
+        await ctx.respond(f"This Discord Bot is opensource and made with discord.py.\nIf you would like to check out the source code, Visit the GitHub Repo here - https://moonball.io/opensource", ephemeral=True)
         await logger("i", f"Sent Bot GitHub URL to message of {ctx.author.name}#{ctx.author.discriminator}", "info", f"Sent Bot GitHub URL to message of {ctx.author.name}#{ctx.author.discriminator}")
 
-
-    @commands.command(name="bot-version", help="Sends the current version of the bot")
+    @commands.slash_command(name="botversion", description="Sends the current version of the bot", guild_ids=[guild_id])
     async def botversion(self, ctx):
         if await checkperm(ctx, 0): return
         await checkcommandchannel(ctx)
-        ctx.reply(f"I am currently on Version `{bot_version}`!")
+        ctx.respond(f"I am currently on Version `{bot_version}`!", ephemeral=True)
         await logger("i", f"Sent Bot Version to message of {ctx.author.name}#{ctx.author.discriminator}", "info",f"Sent Bot Version to message of {ctx.author.name}#{ctx.author.discriminator}")
 
-
-    @commands.command(name="invite", help="Sends a link to invite the bot to your server")
+    @commands.slash_command(name="invite", description="Sends a link to invite the bot to your server", guild_ids=[guild_id])
     async def invite(self, ctx):
         if await checkperm(ctx, 0): return
         await checkcommandchannel(ctx)
-        await ctx.reply("To invite me to your server, Click on the link below\nhttps://moonball.io/bot")
+        await ctx.respond("To invite me to your server, Click on the link below\nhttps://moonball.io/bot", ephemeral=True)
         await logger("i", f"Sent Bot invite URL to message of {ctx.author.name}#{ctx.author.discriminator}", "info",f"Sent Bot invite URL to message of {ctx.author.name}#{ctx.author.discriminator}")
 
 
-
-    @commands.command(name="socials", help="Sends a link to the Moonball Network's Social Media")
+    @commands.slash_command(name="socials", description="Sends a link to the Moonball Network's Social Media", guild_ids=[guild_id])
     async def socials(self, ctx):
         if await checkperm(ctx, 0): return
         await checkcommandchannel(ctx)
@@ -63,7 +58,7 @@ class Info(commands.Cog):
         embed.add_field(name="<:youtubelogo:972789038677385226> YouTube", value="https://moonball.io/youtube", inline=False)
         embed.add_field(name="<:instagramlogo:972789038572527657> Instagram", value="https://moonball.io/instagram", inline=False)
         embed.add_field(name="<:redditlogo:972789038731886603> Reddit", value="https://moonball.io/reddit", inline=False)
-        await ctx.reply(embed=embed)
+        await ctx.respond(embed=embed)
         await logger("i", f"Sent Bot Socials to message of {ctx.author.name}#{ctx.author.discriminator}", "info",f"Sent Bot Socials to message of {ctx.author.name}#{ctx.author.discriminator}")
 
 
