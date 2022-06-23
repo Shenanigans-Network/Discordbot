@@ -12,7 +12,7 @@ This Bot requires many components to function properly, and for you, the end use
 
 ##### Packages #####
 
-- Discord
+- py-cord
 - Requests
 - Json
 - Sqlite3
@@ -67,7 +67,7 @@ https://github.com/Shenanigans-Network/Discordbot/wiki
 
 ## Development ##
 The discord Bot is built in `Python`, using the `discord.py` library.
-To add your custom code, it must me in the discord.py cog format.  
+To add your custom code, it must be in the pycord cog format.  
 ```python
 import discord
 from discord.ext import commands
@@ -90,7 +90,7 @@ def setup(client):
     client.add_cog(Example(client))
 ```
 Add the `.py` file into the `/cogs` folder, and restart your bot or  if its already running, do `+loadcog [cogname]`, where `+` is your Bot Prefix.
-There will be no support, to what ever you try to add on your own to the bot, You must know basic Python and discord.py before trying to attempt this  
+There will be no support, to what ever you try to add on your own to the bot, You must know basic Python and pycord before trying to attempt this  
 
 ## Contact Me ##
 If you have any issue, find a bug within my code or just want to talk, You can contact me on my Discord or Instagram
