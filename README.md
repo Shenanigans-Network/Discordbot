@@ -76,15 +76,15 @@ class Example(commands.Cog)
   def __init__(self, client):
     self.client = client
 
-    # Use @command.Cog.listener() for listeners
-    @commands.Cog.listener()
-    async def on_ready(self):
-    print("Cog : Example.py Loaded")
+  # Use @command.Cog.listener() for listeners
+  @commands.Cog.listener()
+  async def on_ready(self):
+  print("Cog : Example.py Loaded")
     
-    # Use @commands.command() for a command
-    @commands.command()
-    async def ping(self, ctx):
-      await ctx.reply("pong!")
+  # Use @commands.command() for a command
+  @commands.command()
+  async def ping(self, ctx):
+    await ctx.reply("pong!")
 
 def setup(client):
     client.add_cog(Example(client))
