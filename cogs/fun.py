@@ -1,11 +1,26 @@
-import discord, random, asyncio, sqlite3, datetime, aiohttp, time
+#   ╔═╗╔═╗            ╔╗       ╔╗ ╔╗     ╔══╗      ╔╗              ╔═══╗╔═══╗╔═══╗
+#   ║║╚╝║║            ║║       ║║ ║║     ║╔╗║     ╔╝╚╗             ║╔═╗║║╔═╗║║╔═╗║
+#   ║╔╗╔╗║╔══╗╔══╗╔═╗ ║╚═╗╔══╗ ║║ ║║     ║╚╝╚╗╔══╗╚╗╔╝             ║║ ╚╝║║ ║║║║ ╚╝
+#   ║║║║║║║╔╗║║╔╗║║╔╗╗║╔╗║╚ ╗║ ║║ ║║     ║╔═╗║║╔╗║ ║║     ╔═══╗    ║║ ╔╗║║ ║║║║╔═╗
+#   ║║║║║║║╚╝║║╚╝║║║║║║╚╝║║╚╝╚╗║╚╗║╚╗    ║╚═╝║║╚╝║ ║╚╗    ╚═══╝    ║╚═╝║║╚═╝║║╚╩═║
+#   ╚╝╚╝╚╝╚══╝╚══╝╚╝╚╝╚══╝╚═══╝╚═╝╚═╝    ╚═══╝╚══╝ ╚═╝             ╚═══╝╚═══╝╚═══╝
+#
+#
+#   This is a cog belonging to the Moonball Bot.
+#   We are Open Source => https://moonball.io/opensource
+#
+#   This code is not intended to be edited but feel free to do so
+#   More info can be found on the GitHub page:
+#
+
+import discord, random, sqlite3, aiohttp, time, re, datetime
 from discord.ext import commands
-from bot import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon, guild_id    # Import bot variables
-from bot import checkcommandchannel, checkperm, logger, countadd                                     # Import functions
+from backend import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon, guild_id, embed_log, suggestion_channel, tick_emoji, cross_emoji, one_emoji, two_emoji, three_emoji, four_emoji   # Import bot variables
+from backend import checkperm, logger, countadd, log                                     # Import functions
 
 
 class Fun(commands.Cog):
-    """Fun and Interactive Commands that enrich the server experience"""
+    """Fun and Interactive Commands that enriches the server experience"""
     def __init__(self, client):
         self.client = client
         self.embed_color = embed_color
@@ -14,62 +29,146 @@ class Fun(commands.Cog):
         self.embed_footer = embed_footer
         self.prefix = prefix
         self.bot_version = bot_version
-
+        self.embed_log = embed_log
+        self.suggestion_channel_id = suggestion_channel
 
 
     @commands.Cog.listener()
     async def on_ready(self):
         global embed_log, suggestion_channel
-        embed_log = self.client.get_channel(960204173989789736)
-        suggestion_channel = self.client.get_channel(960203053103972403)
-        print("Cog : Fun.py Loaded")
+        embed_log = self.client.get_channel(embed_log)
+        suggestion_channel = self.client.get_channel(suggestion_channel)
+        log.info("Cog : Fun.py Loaded")
 
 
     @commands.slash_command(name="embed", description="Sends a nice looking customisable embed", guild_ids=[guild_id])
-    async def sendembed(self, ctx, title: str, content: str):
+    async def sendembed(self, ctx,
+                        # Title
+                        title: discord.Option(description="Title of the Embed", type=str),
+
+                        color: discord.Option(choices=[
+                                                    discord.OptionChoice("Blue"),
+                                                    discord.OptionChoice("Red"),
+                                                    discord.OptionChoice("Yellow"),
+                                                    discord.OptionChoice("Green"),
+                                                    discord.OptionChoice("Purple"),
+                                                    discord.OptionChoice("Pink"),
+                                                    discord.OptionChoice("Blurple"),
+                                                    discord.OptionChoice("Orange"),
+                                                    discord.OptionChoice("Default")
+                                                    ]),
+
+                        # Field
+                        field_name1: discord.Option(description="Name of the first Field", type=str, default=None),
+                        field_value1: discord.Option(description="Value of the first Field", type=str, default=None),
+
+                        description: discord.Option(description="Description of the Embed", type=str, default=None, optional=True),
+
+                        footer: discord.Option(description="Text in the Footer", type=str, default=None, optional=True),
+
+                        # Author
+                        author: discord.Option(description="Author of the Embed", type=str, default=None, optional=True),
+                        thumbnail: discord.Option(description="URL of the Thumbnail", type=str, default=None, optional=True),
+
+                        # Field 2
+                        field_name2: discord.Option(description="Name of the second Field", type=str, default=None, optional=True),
+                        field_value2: discord.Option(description="Value of the second Field", type=str, default=None, optional=True),
+
+                        # Field 3
+                        field_name3: discord.Option(description="Name of the third Field", type=str, default=None, optional=True),
+                        field_value3: discord.Option(description="Value of the third Field", type=str, default=None, optional=True),
+
+                        # Field 4
+                        field_name4: discord.Option(description="Name of the fourth Field", type=str, default=None, optional=True),
+                        field_value4: discord.Option(description="Value of the fourth Field", type=str, default=None, optional=True),
+
+                        # Footer
+                        url: discord.Option(description="URL in the Embed Title", type=str, default=None, optional=True),
+                        author_url: discord.Option(description="URL in the Embed Author", type=str, default=None, optional=True),
+                        ):
+
         if await checkperm(ctx, 0): return
-        announcement = discord.Embed(title=f"Embed by {ctx.author.name}#{ctx.author.discriminator}", url="https://moonball.io", color=embed_color)
-        announcement.add_field(name=title, value=content.replace(" nl", "\n"), inline=True)
-        announcement.set_footer(text=embed_footer)
-        try:  # Try to send the embed
-            await ctx.respond(embed=announcement)
-            await embed_log.send(embed=announcement)
-        except:
-            await ctx.send(f"Could not send the Embed. An error occurred. Re-Check the syntax or read the embed help page with `{prefix}help embed`")
-            return
-        await logger("f", f"Sent Embed (Embed Creator) to message of {ctx.author.name}#{ctx.author.discriminator}","fun",f"Sent Embed (Embed Creator) to message of {ctx.author.name}#{ctx.author.discriminator}")  # Logs to Log channel
+
+        # Colorizer
+        color_list = {"Blue": discord.Color.blue(), "Red": discord.Color.red(), "Yellow": discord.Color.yellow(), "Green": discord.Color.green(), "Purple": discord.Color.purple(), "Pink": discord.Color.magenta(), "Blurple": discord.Color.blurple(), "Orange": discord.Color.orange(), "Default": discord.Color.default()}
+        color = color_list[color]
+
+        embed = discord.Embed(title=title, color=color)
+        if description is not None:
+            embed.description = description
+
+        if url is not None:
+            # check it is a valid image url with regex
+            regex_img = r'^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&\'\(\)\*\+,;=.]+(.jpg|.jpeg|.png|.gif|.webp)$'
+            if re.match(regex_img, url):
+                embed.url = url
+        if author is not None:
+            if author_url is not None and author is not None:
+                # check it is a valid url with regex
+                regex = r'^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&\'\(\)\*\+,;=.]+$'
+                if re.match(regex, author_url):
+                    embed.set_author(name=author, url=author_url)
+                else:
+                    embed.set_author(name=author)
+            else:
+                embed.set_author(name=author)
+
+        if thumbnail is not None:
+            embed.set_thumbnail(url=thumbnail)
+        if field_name1 is not None and field_value1 is not None:
+            embed.add_field(name=field_name1, value=field_value1, inline=False)
+        if field_name2 is not None and field_value2 is not None:
+            embed.add_field(name=field_name2, value=field_value2, inline=False)
+        if field_name3 is not None and field_value3 is not None:
+            embed.add_field(name=field_name3, value=field_value3, inline=False)
+        if field_name4 is not None and field_value4 is not None:
+            embed.add_field(name=field_name4, value=field_value4, inline=False)
+        if footer is not None:
+            embed.set_footer(text=footer)
+        await ctx.send(embed=embed)
+        await ctx.respond("Embed Sent", ephemeral=True)
+
 
 
     @commands.slash_command(name="poll", description="Sends a nice looking customisable poll", guild_ids=[guild_id])
-    async def poll(self, ctx, options: int, content: str):
+    async def poll(self, ctx,
+                    option1: discord.Option(description="First Option", type=str, optional=False, default=None),
+                    option2: discord.Option(description="Second Option", type=str, optional=False, default=None),
+                    option3: discord.Option(description="Third Option", type=str, optional=True, default=None),
+                    option4: discord.Option(description="Fourth Option", type=str, optional=True, default=None)
+        ):
         if await checkperm(ctx, 0): return
-            # The embed
-        p_embed = discord.Embed(title=f"Poll", url="https://moonball.io", color=embed_color)
-        p_embed.add_field(name=f"Poll by {ctx.author.name}#{ctx.author.discriminator}", value=content.replace(" nl", "\n"), inline=True)
-        p_embed.set_footer(text=f"{embed_footer}")
-        if options > 4:  # Check if number of reactions is more than 4
-            await ctx.send("Sorry, You can't have more than 4 options in a Poll")
+        if option1 is None and option2 is None:
+            await ctx.respond("You need to specify at least two options")
             return
-        elif options < 2:  # Check if number of reactions is less than 2
-            await ctx.send("Sorry, You can't have less than 2 options in a Poll")
-            return
+        if option3 is None:
+            number = 2
+            value = f"{one_emoji} : `{option1}`\n {two_emoji} : `{option2}`"
+        elif option4 is None:
+            number = 3
+            value = f"{one_emoji} : `{option1}`\n {two_emoji} : `{option2}`\n {three_emoji} : `{option3}`"
+        else:
+            number = 4
+            value = f"{one_emoji} : `{option1}`\n {two_emoji} : `{option2}`\n {three_emoji} : `{option3}`\n{four_emoji} : `{option4}`"
 
+        p_embed = discord.Embed(title=f"Poll", url="https://moonball.io", color=embed_color)
+        p_embed.add_field(name=f"Poll by {ctx.author.name}#{ctx.author.discriminator}", value=value, inline=True)
+        p_embed.set_footer(text=f"{embed_footer}")
         p = await ctx.send(embed=p_embed)  # Sending the Embed
         await ctx.respond("Your poll was sent!", ephemeral=True)
-        await p.add_reaction("<:1_bot:957922958502952981>")  # Adding 1 reaction
-        await p.add_reaction("<:2_bot:957922954119888917>")  # Adding 2 reaction
-        if int(options) == 3:
-            await p.add_reaction("<:3_bot:957922953893384192>")  # Checking if number is 3, if yes add 3 reaction
-        elif int(options) == 4:  # Checking of the number is 4
-            await p.add_reaction("<:3_bot:957922953893384192>")  # Adding 3 reaction
-            await p.add_reaction("<:4_bot:957922953381707797>")  # Adding 4 reaction
+        await p.add_reaction(one_emoji)  # Adding 1 reaction
+        await p.add_reaction(two_emoji)  # Adding 2 reaction
+        if number > 2:
+            await p.add_reaction(three_emoji)  # Checking if number is 3, if yes add 3 reaction
+            if number == 4:  # Checking of the number is 4
+                await p.add_reaction(four_emoji)  # Adding 4 reaction
+        await logger("f", f"Sent Poll embed to message of `{ctx.author.name}#{ctx.author.discriminator}`", self.client)  # Logs to Log channel
 
-        await logger("f", f"Sent Poll embed to message of {ctx.author.name}#{ctx.author.discriminator}", "fun", f"Sent Poll embed to message of {ctx.author.name}#{ctx.author.discriminator}")  # Logs to Log channel
+
 
     @commands.slash_command(name="coinflip", description="Flips a coin", guild_ids=[guild_id])
     async def coinflip(self, ctx):  # Coin Flip Command
         if await checkperm(ctx, 0): return
-        if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
         value = random.choice(["heads", "tails"])
         embed = discord.Embed(title="Coin Flip", description=f"{ctx.author.mention} Flipped a coin!, They got **{value.capitalize()}**", color=embed_color)
         if value == "heads":
@@ -79,38 +178,35 @@ class Fun(commands.Cog):
         embed.set_author(name=embed_header, icon_url=embed_icon)
         embed.set_footer(text=embed_footer)
         await ctx.respond(embed=embed, ephemeral=True)
-        await logger("f", f'Sent Coin Flip result to message of {ctx.author.name}#{ctx.author.discriminator}', "fun",f'Sent Coin Flip result to message of {ctx.author.name}#{ctx.author.discriminator}')
+        await logger("f", f'Sent Coin Flip result to message of `{ctx.author.name}#{ctx.author.discriminator}`', self.client)
 
 
     @commands.slash_command(name="avatar", description="Gets your avatar", guild_ids=[guild_id])
-    async def av(self, ctx):
-        if await checkperm(ctx, 0): return
-        if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
-        emb = discord.Embed(title="Avatar", color=embed_color, description=f"This is {ctx.author.name}#{ctx.author.discriminator}'s avatar!")
-        emb.set_image(url=ctx.author.avatar_url)
-        await ctx.respond(embed=emb)
-        await logger("f", f"Sent {ctx.author.name}'s avatar to message of {ctx.author.name}#{ctx.author.discriminator}","fun",f"Sent {ctx.author.name}'s avatar to message of {ctx.author.name}#{ctx.author.discriminator}")
+    async def av(self, ctx, user: discord.Member):
+        emb = discord.Embed(title="Avatar", color=embed_color,
+                            description=f"This is {user.mention}'s avatar!")
+        emb.set_image(url=user.avatar.url)
+        await logger("f", f'Sent Avatar to message of `{ctx.author.name}#{ctx.author.discriminator}`', self.client)
+        await ctx.respond(embed=emb, ephemeral=True)
 
     
     @commands.slash_command(name="suggest", description="Send a suggestion to the official Suggestion Channel", guild_ids=[guild_id])
     async def sendsuggestion(self, ctx, suggestion: str, image_url: discord.Option(str, "Image Link", required=False, default=None)):
         if await checkperm(ctx, 0): return
-        if await checkcommandchannel(ctx): return  # Checks if command was executed in the Command Channel
-        cat = "s"
         s = suggestion.replace(" nl ", " \n")  # Replacing nl with \n
         s_embed = discord.Embed(title=f"Suggestion", url="https://moonball.io", color=embed_color)
         s_embed.add_field(name=f"Submitted by {ctx.author.name}#{ctx.author.discriminator}",
-                          value=f"Suggestion #{countadd(cat)}\n{s} ", inline=True)
+                          value=f"Suggestion #{countadd('s')}\n{s} ", inline=True)
         if image_url:
             s_embed.set_image(url=image_url)  # Setting image
         s_embed.set_footer(text=embed_footer)
         s = await suggestion_channel.send(embed=s_embed)
         # Adding reactions
-        await s.add_reaction("<:tick_bot:953561636566863903>")  # Adding tick reaction
-        await s.add_reaction("<:cross_bot:953561649254649866>")  # Adding cross reaction
+        await s.add_reaction(tick_emoji)  # Adding tick reaction
+        await s.add_reaction(cross_emoji)  # Adding cross reaction
         await embed_log.send(embed=s_embed)  # Sending it to the Logs channel
-        await ctx.respond(f"Your Suggestion was sent! Check <#960203053103972403> to see how its doing!", ephemeral=True)
-        print(f"Sent {ctx.author.name}'s suggestion to the suggestion channel!")
+        await ctx.respond(f"Your Suggestion was sent! Check <#{suggestion_channel.id}> to see how its doing!", ephemeral=True)
+        log.info(f"Sent `{ctx.author.name}`'s suggestion to the suggestion channel!")
 
 
 
@@ -120,7 +216,11 @@ class Fun(commands.Cog):
         if not (0 < int(day) < 32 and 0 < int(month) < 13):
             await ctx.respond("Invalid Date. Please use DD/MM format.", ephemeral=True)
             return
-        con = sqlite3.connect('./data/data.db')
+        try:
+            con = sqlite3.connect('./data/data.db')
+        except Exception as err:
+            log.error("Error: Could not connect to data.db." + str(err))
+            return
         cur = con.cursor()
         cur.execute(f"SELECT * FROM birthdays WHERE disc_id = {disc_id}")
         data = cur.fetchone()
@@ -138,120 +238,117 @@ class Fun(commands.Cog):
         emb.set_footer(text=embed_footer)
         emb.set_author(name=embed_header, icon_url=embed_icon)
         await ctx.respond(embed=emb, ephemeral=True)
-        await logger("f", f"Set {ctx.author.name}'s birthday to {day}/{month}", "fun", f"Set {ctx.author.name}'s birthday to {day}/{month}")
+        await logger("f", f"Set `{ctx.author.name}`'s birthday to `{day}`/`{month}`", self.client)
 
 
     @commands.slash_command(name="removebirthday", description="Removes your birthday", guild_ids=[guild_id])
     async def removebirthday(self, ctx):
         # Removes the birthday from the database
         disc_id = ctx.author.id
-        con = sqlite3.connect('./data/data.db')
+        try:
+            con = sqlite3.connect('./data/data.db')
+        except Exception as err:
+            log.error("Error: Could not connect to data.db." + str(err))
+            return
         cur = con.cursor()
         cur.execute(f"SELECT * FROM birthdays WHERE disc_id = {disc_id}")
         data = cur.fetchone()
         if data is None:
             await ctx.respond("You don't have a birthday set!", ephemeral=True)
             return
-        else:
-            cur.execute(f"DELETE FROM birthdays WHERE disc_id = {disc_id}")
-            con.commit()
-            await ctx.respond("Birthday removed!", ephemeral=True)
+        cur.execute(f"DELETE FROM birthdays WHERE disc_id = {disc_id}")
+        con.commit()
+        await logger("f", f"Removed `{ctx.author.name}`'s birthday", self.client)
+        await ctx.respond("Birthday removed!", ephemeral=True)
 
 
-    # if __name__ == "__main__":
-    #     self.bg_task = self.loop.create_task(self.check_for_birthday())
 
     # Upcoming birthdays cmd
     @commands.slash_command(name="upcomingbirthdays", description="Shows all upcoming birthdays", guild_ids=[guild_id])
     async def upcomingbirthdays(self, ctx):
-        con = sqlite3.connect('./data/data.db')
+        try:
+            con = sqlite3.connect('./data/data.db')
+        except Exception as err:
+            log.error("Error: Could not connect to data.db." + str(err))
+            return
         c = con.cursor()
         c.execute("SELECT * FROM birthdays")
         bdays = c.fetchall()
+        con.close()
+        if not bdays:
+            await ctx.respond("No birthdays set!", ephemeral=True)
+            return
+        emb = discord.Embed(title="Upcoming Birthdays", color=embed_color)
 
-        this_month, upcoming_months, next_year = [], [], []
-        current_time = (int(time.strftime("%d")), int(time.strftime("%m")))
-        for bday in bdays:
-            if current_time[1] == bday[2]:
-                if current_time[0] < bday[1]:
-                    this_month.append(bday)
-                elif current_time[0] > bday[1]:
-                    next_year.append(bday)
-            elif current_time[1] < bday[2]:
-                upcoming_months.append(bday)
-            else:
-                next_year.append(bday)
+        def upcoming_bdays(no: int, bdays: list) -> str:
+            """
+            Return a string with the upcoming birthdays of the users.
+            """
+            class DiscordBday():
+                def __init__(self, day, month, ID):
+                    self.day = day
+                    self.month = month
+                    self.id = ID
 
-        bdays = this_month
-        if not this_month:
-            bdays = upcoming_months
-            if not upcoming_months:
-                bdays = next_year
-                if not next_year:
-                    await ctx.respond("There are no upcoming birthdays!", ephemeral=True)
-                    return
-        print(bdays)
-        # bdays = '\n'.join(bdays)
-        # seperates bdays list to two lists, one for the int and another for the day and date
-        bdays_int = [bday[0] for bday in bdays]
-        bdays_day = [bday[1] for bday in bdays]
-        bdays_date = [bday[2] for bday in bdays]
+                    # calculate no. of days from jan 1st
+                    self.days = self.day + (self.month - 1) * 30
+            days = []
+            for bday in bdays:
+                days.append(DiscordBday(bday[1], bday[2], bday[0]))
+            # Sort the days by their days from jan 1st
+            days.sort(key=lambda x: x.days)
+            # Get the upcoming birthdays
+            upcoming = []
+            i = 0
+            while True:
+                if days[i].month >= datetime.date.today().month:
+                    upcoming.append(days[i])
+                if len(upcoming) == no:
+                    break
+                if i >= len(days) - 1:
+                    break
+                i += 1
+            # format the output
+            output = ""
+            for day in upcoming:
+                output += f"{day.day}/{day.month} **|** <@{day.id}>\n"
 
-        # merge day and date lists with / seperating them
-        bdays_day_date = [f"{day}/{date}" for day, date in zip(bdays_day, bdays_date)]
-        for i in bdays:
-            print(i)
+            return output
 
-        emb = discord.Embed(title="Upcoming Birthdays", color=embed_color, description="These are the upcoming birthdays!")
-        emb.add_field(name="Birthdays", value=bdays, inline=True)
+        upcomingbirthdays = upcoming_bdays(5, bdays)
+
+        emb.add_field(name="Upcoming Birthdays", value=upcomingbirthdays, inline=True)
         emb.set_footer(text=embed_footer)
         emb.set_author(name=embed_header, icon_url=embed_icon)
         await ctx.respond(embed=emb, ephemeral=True)
 
 
+
+
+
     @commands.slash_command(name="joke", description="Gets you a joke", guild_ids=[guild_id])
     async def getjoke(self, ctx):
         if await checkperm(ctx, 0): return
-        async with aiohttp.ClientSession() as session:
-            async with session.get("https://sv443.net/jokeapi/v2/joke/Any?blacklistFlags=nsfw,religious,political,racist,sexist") as resp: #&type=single
-                data = await resp.json()
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get("https://sv443.net/jokeapi/v2/joke/Any?blacklistFlags=nsfw,religious,political,racist,sexist") as resp: #&type=single
+                    data = await resp.json()
+        except Exception as e:
+            await ctx.respond(f"There was an error! Error: {str(e)}", ephemeral=True)
+            log.error(f"Error while getting joke from API. Error: {str(e)}")
+            return
+
         if data["type"] == "single":
             emb = discord.Embed(title="Random Joke", color=embed_color, description=f"{data['joke']}")
-            emb.set_footer(text=embed_footer)
-            emb.set_author(name=embed_header, icon_url=embed_icon)
-            await ctx.respond(embed=emb, ephemeral=True)
-            await logger("f", f"Sent {ctx.author.name}#{ctx.author.discriminator} a joke", "fun", f"Sent {ctx.author.name}#{ctx.author.discriminator} a joke")
         elif data["type"] == "twopart":
             emb = discord.Embed(title="Random Joke", color=embed_color, description=f"{data['setup']}\n||{data['delivery']}||")
-            emb.set_footer(text=embed_footer)
-            emb.set_author(name=embed_header, icon_url=embed_icon)
-            await ctx.respond(embed=emb, ephemeral=True)
-            await logger("f", f"Sent {ctx.author.name}#{ctx.author.discriminator} a joke", "fun", f"Sent {ctx.author.name}#{ctx.author.discriminator} a joke")
         else:
-            await ctx.respond("Something went wrong!", ephemeral=True)
+            return
+        emb.set_footer(text=embed_footer)
+        emb.set_author(name=embed_header, icon_url=embed_icon)
+        await ctx.respond(embed=emb, ephemeral=True)
+        await logger("f", f"Sent `{ctx.author.name}#{ctx.author.discriminator}` a joke", self.client)
 
-    async def check_for_birthday(self):
-        now = datetime.datetime.now()
-        curmonth = now.month
-        curday = now.day
-        e = True
-        while e:
-            # use db
-            con = sqlite3.connect('./data/data.db')
-            cur = con.cursor()
-            cur.execute(f"SELECT * FROM birthdays WHERE month={curmonth} AND day={curday}")
-            birthdays = cur.fetchall()
-            con.close()
-            if birthdays:
-                for member in birthdays:
-                    try:
-                        await self.client.get_user(member).send("Happy birthday!")
-                        # get birthday role
-                        role = discord.utils.get(self.client.get_guild(894902529039687720).roles, name="🎉Happy Birthday!🎉")
-                        await self.client.get_user(member).add_roles(role)
-                    except Exception as e:
-                        print(f"There was an error sending a birthday message to {member[0]}\n{e}")
-            await asyncio.sleep(86400)  # task runs every day
 
 
     @commands.slash_command(name="timestamp", description="Generates you a timestamp", guild_ids=[guild_id])
@@ -260,7 +357,11 @@ class Fun(commands.Cog):
         emb = discord.Embed(title="Timestamp", color=embed_color, description=f"Sends you a custom, variable Discord timestamp.")
         emb.add_field(name="Timestamp", value=f"<t:{int(time.time())+seconds}:R>", inline=False)
         emb.add_field(name="Raw Code", value=f"`<t:{int(time.time())+seconds}:R>`", inline=False)
+        emb.set_footer(text=embed_footer)
+        emb.set_author(name=embed_header, icon_url=embed_icon)
+        await logger("f", f"Sent `{ctx.author.name}#{ctx.author.discriminator}` a timestamp", self.client)
         await ctx.respond(embed=emb, ephemeral=True)
+
 
 
 def setup(client):

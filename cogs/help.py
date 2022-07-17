@@ -1,21 +1,30 @@
+#   ╔═╗╔═╗            ╔╗       ╔╗ ╔╗     ╔══╗      ╔╗              ╔═══╗╔═══╗╔═══╗
+#   ║║╚╝║║            ║║       ║║ ║║     ║╔╗║     ╔╝╚╗             ║╔═╗║║╔═╗║║╔═╗║
+#   ║╔╗╔╗║╔══╗╔══╗╔═╗ ║╚═╗╔══╗ ║║ ║║     ║╚╝╚╗╔══╗╚╗╔╝             ║║ ╚╝║║ ║║║║ ╚╝
+#   ║║║║║║║╔╗║║╔╗║║╔╗╗║╔╗║╚ ╗║ ║║ ║║     ║╔═╗║║╔╗║ ║║     ╔═══╗    ║║ ╔╗║║ ║║║║╔═╗
+#   ║║║║║║║╚╝║║╚╝║║║║║║╚╝║║╚╝╚╗║╚╗║╚╗    ║╚═╝║║╚╝║ ║╚╗    ╚═══╝    ║╚═╝║║╚═╝║║╚╩═║
+#   ╚╝╚╝╚╝╚══╝╚══╝╚╝╚╝╚══╝╚═══╝╚═╝╚═╝    ╚═══╝╚══╝ ╚═╝             ╚═══╝╚═══╝╚═══╝
+#
+#
+#   This is a cog belonging to the Moonball Bot.
+#   We are Open Source => https://moonball.io/opensource
+#
+#   This code is not intended to be edited but feel free to do so
+#   More info can be found on the GitHub page:
+#
+
 import discord
 from discord.ext import commands
-from discord.errors import Forbidden
-from bot import bot_version, prefix, embed_color, embed_footer, embed_header, embed_icon
-from bot import logger
+from backend import bot_version, prefix, embed_color, embed_footer, embed_header, embed_icon
+from backend import log, logger
 
 
 async def send_embed(ctx, embed):
     try:
         await ctx.reply(embed=embed)
-        await logger("h", f"Sent help Embed to {ctx.author.name}#{ctx.author.discriminator}", "help", f"Sent help Embed to {ctx.author.name}#{ctx.author.discriminator}")
-    except Forbidden:
-        try:
-            await ctx.reply("Hey, seems like I can't send embeds. Please check my permissions :)")
-        except Forbidden:
-            await ctx.author.send(
-                f"Hey, seems like I can't send any message in {ctx.channel.name} on {ctx.guild.name}\n"
-                f"May you inform the server team about this issue? :slight_smile: ", embed=embed)
+        await logger("h", f"Sent help Embed to {ctx.author.name}#{ctx.author.discriminator}", f"Sent help Embed to {ctx.author.name}#{ctx.author.discriminator}", ctx.client)
+    except Exception as e:
+        log.error(f"Unable to send help Embed. Error: {e}")
 
 
 class Help(commands.Cog, description="Help and Admin Help Commands for the Bot"):
@@ -27,7 +36,7 @@ class Help(commands.Cog, description="Help and Admin Help Commands for the Bot")
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print("Cog : Help.py Loaded")
+        log.info("Cog : Help.py Loaded")
 
 
     @commands.command(aliass=["h", "help"])
@@ -39,7 +48,7 @@ class Help(commands.Cog, description="Help and Admin Help Commands for the Bot")
         emb.add_field(name="Version", value=self.bot_version, inline=True)
         emb.add_field(name="Prefix", value="`/` (Slash Commands)", inline=True)
         emb.add_field(name="Dev", value="<@929411943738015764>", inline=True)
-        emb.add_field(name="There is no help required!", value="Do `/` and view al the Moonball Bot slash commands!", inline=False)
+        emb.add_field(name="There is no help required!", value="Do `/` and view all the Moonball Bot slash commands!", inline=False)
 
         # sending reply embed using our own function defined above
         await send_embed(ctx, emb)

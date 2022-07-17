@@ -1,7 +1,24 @@
-import discord
+#   ╔═╗╔═╗            ╔╗       ╔╗ ╔╗     ╔══╗      ╔╗              ╔═══╗╔═══╗╔═══╗
+#   ║║╚╝║║            ║║       ║║ ║║     ║╔╗║     ╔╝╚╗             ║╔═╗║║╔═╗║║╔═╗║
+#   ║╔╗╔╗║╔══╗╔══╗╔═╗ ║╚═╗╔══╗ ║║ ║║     ║╚╝╚╗╔══╗╚╗╔╝             ║║ ╚╝║║ ║║║║ ╚╝
+#   ║║║║║║║╔╗║║╔╗║║╔╗╗║╔╗║╚ ╗║ ║║ ║║     ║╔═╗║║╔╗║ ║║     ╔═══╗    ║║ ╔╗║║ ║║║║╔═╗
+#   ║║║║║║║╚╝║║╚╝║║║║║║╚╝║║╚╝╚╗║╚╗║╚╗    ║╚═╝║║╚╝║ ║╚╗    ╚═══╝    ║╚═╝║║╚═╝║║╚╩═║
+#   ╚╝╚╝╚╝╚══╝╚══╝╚╝╚╝╚══╝╚═══╝╚═╝╚═╝    ╚═══╝╚══╝ ╚═╝             ╚═══╝╚═══╝╚═══╝
+#
+#
+#   This is a cog belonging to the Moonball Bot.
+#   We are Open Source => https://moonball.io/opensource
+#
+#   This code is not intended to be edited but feel free to do so
+#   More info can be found on the GitHub page
+#
+
+import discord, datetime, sqlite3, asyncio
 from discord.ext import commands
-from bot import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon    # Import bot variables
-from bot import logger, ip_embed, version_embed, serverstatus                               # Import bot functions
+from backend import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon, server_list, welcome_channel, embed_url, suggestion_channel, roles_synced, guild_id, member_role, birthday_role  # Import bot variables
+from backend import logger, serverstatus, get_con, sendcmd, ip_embed, version_embed, log    # Import bot functions
+
+
 
 class Listeners(commands.Cog):
     """Event Listeners for the Bot."""
@@ -13,95 +30,132 @@ class Listeners(commands.Cog):
         self.embed_footer = embed_footer
         self.prefix = prefix
         self.bot_version = bot_version
+        self.welcome_channel = welcome_channel
 
 
     @commands.Cog.listener()
     async def on_ready(self):
         global welcome_channel
-        welcome_channel = self.client.get_channel(960196760565841941)
-        print("Cog : Listeners.py Loaded")
+        await self.check_for_birthday()
+        welcome_channel = self.client.get_channel(welcome_channel)
+        log.info("Cog : Listeners.py Loaded")
+
 
     # On-Message
     @commands.Cog.listener()
     async def on_message(self, ctx):
-        if ctx.author.bot: return  # checks if author is a bot.
-        else:
-            if " ip " in f" {ctx.content.lower()} ": await ip_embed(ctx)                # On word IP send ip embed
+        if ctx.author.bot: return  # Checks if message author is a bot.
+        if " ip " in f" {ctx.content.lower()} ":
+                await ip_embed(ctx)
 
-            # If message starts with +
-            if ctx.content.startswith(prefix):
-                try:
-                    await ctx.reply("The bot has now moved to Slash commands, instead of normal prefixed commands. To use commands press `/` and view all the Moonball Bot slash commands!")
-                except Exception:
-                    pass
+        if any(word in f" {ctx.content.lower()} " for word in [" version ", " 1.8.9 ", " 1.8 ", " 1.19 "]):
+                await version_embed(ctx)
+
+        # on message containing => [on|off|down|up][server]
+        if any(word in f" {ctx.content.lower()} " for word in [" up ", " down ", " on ", " off "]): # Checks if the message contains the trigger words
+            server = None
+            for i in server_list:
+                if i in f" {ctx.content.lower()} ":
+                    server = i.strip()
+                    break
+            if server is None:
                 return
-
-
-            elif " version " in f" {ctx.content.lower()} ": await version_embed(ctx)    # On word "version" send the version embed
-            elif " 1.8.9 " in f" {ctx.content.lower()} ": await version_embed(ctx)     # On word "1.8.9" send the version embed
-            elif " 1.8 " in f" {ctx.content.lower()} ": await version_embed(ctx)        # On word "1.8" send the version embed
-            # elif self.client.user in ctx.mentions:  # Replies to when the Bot in @mentioned
-            #     await ctx.reply(f"Hello! my prefix is `{prefix}`. Use `{prefix}help` to view available commands.",delete_after=10.0)
-            #     await logger("h", f"Sent Mention message to {ctx.author.name}#{ctx.author.discriminator}", "help",f"Sent mention-message to message of {ctx.author.name}#{ctx.author.discriminator}")
-
-            elif " down " in f" {ctx.content.lower()} " or " up " in f" {ctx.content.lower()} " or " on " in f" {ctx.content.lower()} " or " off " in f" {ctx.content.lower()} ":
-                if " proxy " in f" {ctx.content.lower()} ": await serverstatus(ctx, "proxy")
-                elif " limbo " in f" {ctx.content.lower()} ": await serverstatus(ctx, "limbo")
-                elif " auth " in f" {ctx.content.lower()} " : await serverstatus(ctx, "auth")
-                elif " lobby " in f" {ctx.content.lower()} ": await serverstatus(ctx, "lobby")
-                elif " survival " in f" {ctx.content.lower()} ": await serverstatus(ctx, "survival")
-                elif " bedwars " in f" {ctx.content.lower()} ": await serverstatus(ctx, "bedwars")
-                elif " duels " in f" {ctx.content.lower()} ": await serverstatus(ctx, "duels")
-                elif " skyblock " in f" {ctx.content.lower()} ": await serverstatus(ctx, "skyblock")
-                elif " prison " in f" {ctx.content.lower()} ": await serverstatus(ctx, "prison")
-                elif " parkour " in f" {ctx.content.lower()} ": await serverstatus(ctx, "parkour")
+            await serverstatus(ctx, server, isslash=False)
 
 
 
     # Welcome Announcement
     @commands.Cog.listener()
     async def on_member_join(self, member):
-        welcome_embed = discord.Embed(title=f'Welcome to the Discord Server!', url="https://moonball.io",color=embed_color)
-        welcome_embed.add_field(name="Moonball Network",value=f"<a:malconfetti:910127223791554570> Welcome {member.mention} to the Server! <a:malconfetti:910127223791554570>\n<a:Read_Rules:910128684751544330> Please check out the Server Rules here <#960196761656385546> <a:Read_Rules:910128684751544330>\n <a:hypelove:901476784204288070> Take your Self Roles at <#960196767251570749> <a:hypelove:901476784204288070>\n <:02cool:910128856550244352> Head over to <#960196776579719278> to talk with others! <:02cool:910128856550244352> \n<a:Hearts:952919562846875650> Server info and IP can be found here <#960212885332705290> <a:Hearts:952919562846875650>",inline=True)
-        welcome_embed.set_image(url="https://media.discordapp.net/attachments/896348336972496936/952940944175554590/ezgif-1-e6eb713fa2.gif")
+        welcome_embed = discord.Embed(title=f'Welcome to the Discord Server!', url=embed_url,color=embed_color)
+        welcome_embed.add_field(name=embed_header,value=f"<a:malconfetti:910127223791554570> Welcome {member.mention} to the Server! <a:malconfetti:910127223791554570>\n<a:Read_Rules:910128684751544330> Please check out the Server Rules here <#960196761656385546> <a:Read_Rules:910128684751544330>\n <a:hypelove:901476784204288070> Take your Self Roles at <#960196767251570749> <a:hypelove:901476784204288070>\n <:02cool:910128856550244352> Head over to <#960196776579719278> to talk with others! <:02cool:910128856550244352> \n<a:Hearts:952919562846875650> Server info and IP can be found here <#960212885332705290> <a:Hearts:952919562846875650>",inline=True)
+        welcome_embed.set_image(url="https://cdn.discordapp.com/attachments/988082459658813490/988083938952093736/welcome-minecraft.gif")
         welcome_embed.set_footer(text=embed_footer)
         await welcome_channel.send(embed=welcome_embed)
-        role = discord.utils.get(self.client.get_guild(894902529039687720).roles, id=960196710766895134)
+        role = discord.utils.get(self.client.get_guild(guild_id).roles, id=member_role)
         await member.add_roles(role)
-        await logger("i", f"Sent Welcome Embed to {member.name}#{member.discriminator}", "info",f"Sent Welcome Embed to {member.name}#{member.discriminator}")
+        await logger("o", f"Sent Welcome Embed to `{member.name}#{member.discriminator}`", self.client)
 
 
     # Disables reacting to both options in the suggestion channel
     @commands.Cog.listener()  # No reacting to both in suggestions
     async def on_raw_reaction_add(self, payload):  # checks whenever a reaction is added to a message
-        if payload.channel_id == 956806563950112848:  # check which channel the reaction was added in Suggestion Channel
+        if payload.channel_id == suggestion_channel:  # check which channel the reaction was added in Suggestion Channel
             channel = await self.client.fetch_channel(payload.channel_id)
             message = await channel.fetch_message(payload.message_id)
             for r in message.reactions:  # iterating through each reaction in the message
-                if payload.member in await r.users().flatten() and not payload.member.bot and str(r) != str(
-                        payload.emoji):
+                if payload.member in await r.users().flatten() and not payload.member.bot and str(r) != str(payload.emoji):
                     await message.remove_reaction(r.emoji, payload.member)  # Removes the reaction
+                    await logger("o", f"Removed Reaction `{r.emoji}` from `{payload.member.name}#{payload.member.discriminator}`", self.client)
 
 
-    # On command error
-    @commands.Cog.listener()  # When user does an invalid command
-    async def on_command_error(self, ctx, error):
-        if not isinstance(error, commands.CheckFailure):
-            embed = discord.Embed(title="Error!", url="https://moonball.io/",description="There was an Error while executing your command.",color=embed_color).set_author(name=embed_header).set_footer(text=embed_footer)
-            embed.add_field(name="Here is your Error -", value=f"```ini\n[{str(error)}]```", inline=False)
-            if "is not found" in str(error):  # Non-Existent Command
-                embed.add_field(name="Here is the command you tried to execute -",value=f"```ini\n[{ctx.message.content}]```", inline=False)
-                embed.add_field(name="What This Means",value=f"**Non-Existent Command** : The command you just tried to execute, does not exist!\nUse `{prefix}help` to learn about the available commands!",inline=False)
-            elif str(error) == "Command raised an exception: IndexError: list index out of range":  # Bad Syntax
-                embed.add_field(name="Here is the command you tried to execute -",value=f"```ini\n[{ctx.message.content}]```", inline=False)
-                embed.add_field(name="What This Means",value=f"**Bad Syntax** : The Syntax for this specific command is not right. There may be arguments missing within the command.\nUse `{prefix}help` to learn about the commands and their syntaxes!",inline=False)
+
+
+
+    # Rank Sync
+    @commands.Cog.listener()    # On role given
+    async def on_member_update(self, before, after):
+
+        # If the user is given a role
+        if len(before.roles) < len(after.roles):
+            new_role = next(role for role in after.roles if role not in before.roles)   # Gets the role that the user just got
+
+            if new_role.name in roles_synced:    # If the user just got a Rank Role
+                mc_user = await get_con(int(after.id))  # Gets the user's MC account, if exists
+                if mc_user is None: # If the user is not connected
+                    return
+
+                role = new_role.name.lower()
+                cmd = f"lp user {mc_user} parent add {role}" # Command to give the user the rank
+                await sendcmd("auth", cmd)  # Sends the command to LuckPerms server
+                await after.send(f"Greetings, You have been given the `{new_role.name.capitalize()}` rank, in-game.") # DMs the user on Discord
+                await logger("m", f"Gave `{after.name}#{after.discriminator}` the `{new_role.name.capitalize()}` rank!", self.client)
+
+
+        # If a role is removed from the user
+        if len(before.roles) > len(after.roles):
+            removed_role = next(role for role in before.roles if role not in after.roles)   # Gets the role that the user just lost
+            if removed_role.name in roles_synced:    # If the user just lost a Rank Role
+                mc_user = await get_con(int(before.id))  # Gets the user's MC account, if exists
+                if mc_user is None: # If the user is not connected
+                    return
+
+                role = removed_role.name.lower()
+                cmd = f"lp user {mc_user} parent remove {role}" # Command to remove the rank
+                await sendcmd("auth", cmd)  # Sends the command to LuckPerms server
+                await before.send(f"Greetings, The `{removed_role.name.capitalize()}` rank has been taken from you, in-game.") # DMs the user on Discord
+                await logger("m", f"Removed `{removed_role.name.capitalize()}` Role from `{before.name}#{before.discriminator}`", self.client)
+
+
+    async def check_for_birthday(self):
+        while True:
+            now = datetime.datetime.now()
+            curmonth = now.month
+            curday = now.day
+            try:
+                con = sqlite3.connect('./data/data.db')
+            except Exception as err:
+                log.error("Error: Could not connect to data.db." + str(err))
+                return
+            cur = con.cursor()
+            cur.execute(f"SELECT * FROM birthdays WHERE month={curmonth} AND day={curday}")
+            birthdays = cur.fetchall()
+            con.close()
+            if birthdays:
+                user = self.client.get_user(int(birthdays[0][0]))
+                try:
+                    await user.send("Happy birthday! :tada:")
+                    log.debug("Sent birthday message to " + str(user))
+                    await self.client.get_channel(welcome_channel).send(f"<@{int(birthdays[0][0])}> has had their birthday today! :tada:")
+                except Exception as e:
+                    log.error(f"Error while sending birthday message and Giving role to {user}. Error: {str(e)}")
+                log.debug(f"Today is {curmonth}/{curday} and {user} has a birthday!")
             else:
-                embed.add_field(name="Here is the command you tried to execute -",value=f"```ini\n[{ctx.message.content}]```", inline=False)
-                embed.add_field(name="What This Means",value=f"With so many possible errors, I do not know what the exact error is, without the error code. Please send this error code to the Developer, <@837584356988944396> in DMs for it to be resolved.\nThere is still a chance it may be a syntax error.\nUse `{prefix}help` to learn about the commands and their syntaxes!",inline=False)
-            await ctx.author.send(embed=embed)
-            await ctx.message.add_reaction("<:cross_bot:953561649254649866>")
-            await logger("h", f"Sent Error message to {ctx.author.name}#{ctx.author.discriminator}. Error - {error}","help",f"Sent Error Embed to message of {ctx.author.name}#{ctx.author.discriminator}\nError - ```ini\n{error}```")
+                log.debug("No birthdays today.")
+            await asyncio.sleep(86400)  # task runs every day
+
 
 
 def setup(client):
     client.add_cog(Listeners(client))
+
