@@ -12,7 +12,7 @@ This Bot requires many components to function properly, and for you, the end use
 
 ##### Packages #####
 
-- Discord
+- py-cord
 - Requests
 - Json
 - Sqlite3
@@ -90,10 +90,10 @@ class Example(commands.Cog):
     async def on_ready(self):
         print("Cog : Example.py Loaded")
     
-    # Use @commands.command() for a command
-    @commands.command()
-    async def ping(self, ctx):
-      await ctx.reply("pong!")
+  # Use @commands.command() for a command
+  @commands.command()
+  async def ping(self, ctx):
+    await ctx.reply("pong!")
 
 def setup(client):
     client.add_cog(Example(client))
