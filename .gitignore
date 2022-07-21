@@ -4,3 +4,5 @@
 ./data/data.sqbpro
 data/env
 cogs/old_help.py.old
+
+data/config.ini

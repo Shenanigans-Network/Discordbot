@@ -443,6 +443,17 @@ class Admin(commands.Cog):
         await ctx.respond(embed=discord.Embed(title="Change Presence", description="**Success!**\nThe presence has been changed.", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), ephemeral=True)
 
 
+    @admin.command(name="giverole", description="ADMIN: Give a role to a user", guild_ids=[guild_id])
+    async def give_role(self, ctx, user: discord.Member, role: discord.Role):
+        if await checkperm(ctx, 3): return
+        # Check if role is @everyone
+        if role.id == "0":
+            await ctx.respond(embed=discord.Embed(title="Give Role", description="**Error!**\nYou cannot give the @everyone role.", color=discord.colour.Color.red()), ephemeral=True)
+            return
+        await user.add_roles(role)
+        embed = discord.Embed(title="Give Role", description=f"**Success!**\nThe role has been given to {user.mention}.", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
+        await ctx.respond(embed=embed, ephemeral=True)
+        await logger("a", f"`{ctx.author.name}#{ctx.author.discriminator}` gave `{user.name}` the role `{role.name}`", self.client)
 
 
 def setup(client):

@@ -64,15 +64,13 @@ try:
     log_channel: int = config.getint('discord', 'log_channel')
     embed_log: int = config.getint('discord', 'embed_log')
     member_role: int = config.getint('discord', 'member_role_id')
-    birthday_role: str = config.get('discord', 'birthday_role_name')
-
+    general_channel: int = config.getint('discord', 'general_channel')
 
     embed_footer: str = config.get('discord', 'embed_footer').replace("$bot_version", bot_version)
     embed_header: str = config.get('discord', 'embed_header').replace("$bot_version", bot_version)
     embed_color: int = int(config.get('discord', 'embed_color'), base=16)
     embed_icon: str = config.get('discord', 'embed_icon')
     embed_url: str = config.get('discord', 'embed_url')
-
 
     ptero_apikey: str = config.get('secret', 'pterodactyl_apikey')
     db_host: str = config.get('secret', 'db_host')

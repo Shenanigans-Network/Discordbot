@@ -13,9 +13,9 @@
 #   More info can be found on the GitHub page
 #
 
-import discord, datetime, sqlite3, asyncio
+import discord, datetime, sqlite3, asyncio, time
 from discord.ext import commands
-from backend import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon, server_list, welcome_channel, embed_url, suggestion_channel, roles_synced, guild_id, member_role, birthday_role  # Import bot variables
+from backend import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon, server_list, welcome_channel, embed_url, suggestion_channel, roles_synced, guild_id, member_role, general_channel  # Import bot variables
 from backend import logger, serverstatus, get_con, sendcmd, ip_embed, version_embed, log    # Import bot functions
 
 
@@ -30,12 +30,13 @@ class Listeners(commands.Cog):
         self.embed_footer = embed_footer
         self.prefix = prefix
         self.bot_version = bot_version
-        self.welcome_channel = welcome_channel
+        # self.welcome_channel = welcome_channel
 
 
     @commands.Cog.listener()
     async def on_ready(self):
         global welcome_channel
+        await self.check_reminders()
         await self.check_for_birthday()
         welcome_channel = self.client.get_channel(welcome_channel)
         log.info("Cog : Listeners.py Loaded")
@@ -71,7 +72,7 @@ class Listeners(commands.Cog):
         welcome_embed.add_field(name=embed_header,value=f"<a:malconfetti:910127223791554570> Welcome {member.mention} to the Server! <a:malconfetti:910127223791554570>\n<a:Read_Rules:910128684751544330> Please check out the Server Rules here <#960196761656385546> <a:Read_Rules:910128684751544330>\n <a:hypelove:901476784204288070> Take your Self Roles at <#960196767251570749> <a:hypelove:901476784204288070>\n <:02cool:910128856550244352> Head over to <#960196776579719278> to talk with others! <:02cool:910128856550244352> \n<a:Hearts:952919562846875650> Server info and IP can be found here <#960212885332705290> <a:Hearts:952919562846875650>",inline=True)
         welcome_embed.set_image(url="https://cdn.discordapp.com/attachments/988082459658813490/988083938952093736/welcome-minecraft.gif")
         welcome_embed.set_footer(text=embed_footer)
-        await welcome_channel.send(embed=welcome_embed)
+        await self.client.get_channel(welcome_channel).send(embed=welcome_embed)
         role = discord.utils.get(self.client.get_guild(guild_id).roles, id=member_role)
         await member.add_roles(role)
         await logger("o", f"Sent Welcome Embed to `{member.name}#{member.discriminator}`", self.client)
@@ -127,6 +128,7 @@ class Listeners(commands.Cog):
                 await logger("m", f"Removed `{removed_role.name.capitalize()}` Role from `{before.name}#{before.discriminator}`", self.client)
 
 
+
     async def check_for_birthday(self):
         while True:
             now = datetime.datetime.now()
@@ -152,7 +154,65 @@ class Listeners(commands.Cog):
                 log.debug(f"Today is {curmonth}/{curday} and {user} has a birthday!")
             else:
                 log.debug("No birthdays today.")
-            await asyncio.sleep(86400)  # task runs every day
+            await asyncio.sleep(86400)  # task runs every
+
+
+
+    async def check_reminders(self):
+        await asyncio.sleep(5) # Wait for bot to properly start up
+        try:
+            con = sqlite3.connect('./data/data.db')
+        except Exception as err:
+            log.error("Error: Could not connect to data.db." + str(err))
+            return
+        cur = con.cursor()
+        while True:
+            cur.execute(f"SELECT * FROM reminders")
+            for r in cur.fetchall():    # For each reminder
+                if round(int(r[2]), -2) <= round(int(time.time()), -2): # Round to nearest 10s place, and compare to current time
+                    log.debug(f"Found an upcoming reminder in these 100 seconds.")
+                    for i in range(100):    # For each second
+                        await self.remind()
+                        await asyncio.sleep(1)  # task runs every second
+                    continue
+            await asyncio.sleep(100)  # Sleep for 100 seconds
+
+
+
+    async def remind(self):
+        con = sqlite3.connect('./data/data.db')
+        cur = con.cursor()
+        # function start time
+        cur.execute(f"SELECT * FROM reminders WHERE time <= {int(time.time())}")
+        reminders = cur.fetchall()
+        if not reminders:   # If there are no reminders
+            return
+
+        r_embed = discord.Embed(title="Reminder", description="This is a reminder!", color=embed_color)
+        r_embed.set_footer(text=embed_footer)
+        r_embed.set_author(name=embed_header, icon_url=embed_icon)
+
+        for reminder in reminders:  # For each reminder
+            if int(reminder[3]) != int(reminder[1]):    # If the reminder has been sent from someone else
+                r_embed.add_field(name="Sender", value=f"<@{reminder[3]}>", inline=False)
+            user = self.client.get_user(int(reminder[1]))
+
+            if reminder[4]: # If the reminder has a message
+                r_embed.add_field(name="Message", value=f"`{reminder[4]}`") # Adds the message to the embed
+
+            try:    # Send the reminder
+                await user.send(embed=r_embed) # Sends the reminder to the user
+            except Exception as e:  # If I couldn't DM the user
+                await self.client.get_guild(guild_id).get_channel(general_channel).send(f"Hey {user.mention}! Couldn't DM you your reminder.", embed=r_embed)
+                log.error(f"Error while DMing reminder to {user.id}. Error: {str(e)}")
+
+            await logger("f", f"Sent reminder from `{reminder[3]}` to `{user}`", self.client)
+            cur.execute(f"DELETE FROM reminders WHERE id={reminder[0]}")
+            con.commit()
+
+
+
+        # function end time
 
 
 

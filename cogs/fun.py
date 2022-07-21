@@ -177,7 +177,7 @@ class Fun(commands.Cog):
             embed.set_image(url="https://cdn.discordapp.com/attachments/951055432833695767/960211488772083752/tail.png")  # Setting tails image
         embed.set_author(name=embed_header, icon_url=embed_icon)
         embed.set_footer(text=embed_footer)
-        await ctx.respond(embed=embed, ephemeral=True)
+        await ctx.respond(embed=embed)
         await logger("f", f'Sent Coin Flip result to message of `{ctx.author.name}#{ctx.author.discriminator}`', self.client)
 
 
@@ -308,11 +308,9 @@ class Fun(commands.Cog):
                 if i >= len(days) - 1:
                     break
                 i += 1
-            # format the output
             output = ""
             for day in upcoming:
                 output += f"{day.day}/{day.month} **|** <@{day.id}>\n"
-
             return output
 
         upcomingbirthdays = upcoming_bdays(5, bdays)
@@ -361,6 +359,103 @@ class Fun(commands.Cog):
         emb.set_author(name=embed_header, icon_url=embed_icon)
         await logger("f", f"Sent `{ctx.author.name}#{ctx.author.discriminator}` a timestamp", self.client)
         await ctx.respond(embed=emb, ephemeral=True)
+
+
+
+
+    @commands.slash_command(name="8ball", description="Gets you a random answer", guild_ids=[guild_id])
+    async def eightball(self, ctx, question: str):
+        if await checkperm(ctx, 0): return
+        answers = ["It is certain.", "It is decidedly so.", "Without a doubt.", "Yes - definitely.", "You may rely on it.", "As I see it, yes.", "Most likely.", "Outlook good.",
+                   "Yes.", "Signs point to yes.", "Reply hazy, try again.", "Ask again later.", "Better not tell you now.", "Cannot predict now.", "Concentrate and ask again.",
+                   "Don't count on it.", "My reply is no.", "My sources say no.", "Outlook not so good.", "Very doubtful."]
+        embed = discord.Embed(title="8Ball", color=embed_color, description=f"{ctx.author.name}'s 8Ball Answer")
+        embed.add_field(name="Question", value=f"`{question}`", inline=False)
+        embed.add_field(name="Answer", value=f"||`{random.choice(answers)}`||", inline=False)
+        embed.set_footer(text=embed_footer)
+        embed.set_author(name=embed_header, icon_url=embed_icon)
+        await ctx.respond(embed=embed)
+        await logger("f", f"Sent `{ctx.author.name}#{ctx.author.discriminator}` a 8Ball answer", self.client)
+
+
+    @commands.slash_command(name="remindme", description="Sets a reminder for you", guild_ids=[guild_id])
+    async def remindme(self, ctx, quantity: int,
+                       unit: discord.Option(choices=
+                       [
+                            discord.OptionChoice("Minute(s)", value="m"),
+                            discord.OptionChoice("Hour(s)", value="h"),
+                            discord.OptionChoice("Day(s)", value="d"),
+                            discord.OptionChoice("Week(s)", value="w"),
+                            discord.OptionChoice("Month(s)", value="mo"),
+                           ]),
+                       user: discord.User,
+                       message: str=None):
+
+        if await checkperm(ctx, 0): return
+        # syntax -> /remindme [time] <message>
+        units = {"m" : 60, "h" : 3600, "d" : 86400, "w": 604800, "mo": 2592000}
+        if not quantity > 0:
+            await ctx.respond("Quantity must be a positive number.", ephemeral=True)
+            return
+        if message:
+            if len(message) > 1900:
+                await ctx.respond("Your message is too long!", ephemeral=True)
+                return
+        if not user:
+            user = ctx.author
+        seconds = units[unit] * quantity
+        duration = int(time.time())+seconds
+        con = sqlite3.connect('./data/data.db')
+        cur = con.cursor()
+        rem_id = random.randint(1000000000,9999999999)
+        if message: # If there is a message to send
+            message = message.replace('"', '')
+            cur.execute(f'INSERT INTO reminders VALUES({rem_id}, {user.id}, {duration}, {ctx.author.id}, "{message}");')
+        else:   # If there is no message to send
+            cur.execute(f'INSERT INTO reminders VALUES({rem_id},{user.id}, {duration}, {ctx.author.id}, "");')
+        con.commit()
+        con.close()
+        r_embed = discord.Embed(title="Reminder", color=embed_color, description=f"{user.name} will be reminded in {quantity} {unit}.")
+        if message:
+            r_embed.add_field(name="Message", value=f"`{message}`", inline=False)
+        r_embed.add_field(name="ID", value=f"`{rem_id}`", inline=False)
+        r_embed.set_footer(text=embed_footer)
+        r_embed.set_author(name=embed_header, icon_url=embed_icon)
+        await ctx.respond(embed=r_embed)
+
+        await logger("f", f"`{ctx.author.name}#{ctx.author.discriminator}` set a reminder for `{user.id}`", self.client)
+
+
+
+    @commands.slash_command(name="reminders", description="Gets all your reminders", guild_ids=[guild_id])
+    async def reminders(self, ctx):
+        if await checkperm(ctx, 0): return
+        try:
+            con = sqlite3.connect('./data/data.db')
+        except Exception as e:
+            log.error(f"Error while connecting to database. Error: {str(e)}")
+            return
+        cur = con.cursor()
+        cur.execute(f'SELECT * FROM reminders WHERE user_id = {ctx.author.id};')
+        reminders = cur.fetchall()
+        con.close()
+        r_embed = discord.Embed(title="Reminders", color=embed_color, description="Here are your upcoming reminders")
+        r_embed.set_footer(text=embed_footer)
+        r_embed.set_author(name=embed_header, icon_url=embed_icon)
+
+        if reminders:
+            output = ""
+            for reminder in reminders:
+                output += f"`{reminder[0]}` <t:{reminder[2]}:R>\n"
+            r_embed.add_field(name="Upcoming Reminders", value=output, inline=False)
+
+        else:
+            r_embed.add_field(name="Upcoming Reminders", value="You have no upcoming reminders.", inline=False)
+
+        await ctx.respond(embed=r_embed)
+        await logger("f", f"`{ctx.author.name}#{ctx.author.discriminator}` got their reminders", self.client)
+
+
 
 
 
