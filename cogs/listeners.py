@@ -12,6 +12,7 @@
 #   This code is not intended to be edited but feel free to do so
 #   More info can be found on the GitHub page
 #
+import random
 
 import discord, datetime, sqlite3, asyncio, time
 from discord.ext import commands
@@ -36,6 +37,7 @@ class Listeners(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         global welcome_channel
+        await self.check_giveaway()
         await self.check_reminders()
         await self.check_for_birthday()
         welcome_channel = self.client.get_channel(welcome_channel)
@@ -178,6 +180,8 @@ class Listeners(commands.Cog):
             await asyncio.sleep(100)  # Sleep for 100 seconds
 
 
+    # Database Format => id, user_id, time, author_id, message
+    #                     0    1        2      3           4
 
     async def remind(self):
         con = sqlite3.connect('./data/data.db')
@@ -208,7 +212,100 @@ class Listeners(commands.Cog):
             await logger("f", f"Sent reminder from `{reminder[3]}` to `{user}`", self.client)
             cur.execute(f"DELETE FROM reminders WHERE id={reminder[0]}")
             con.commit()
+            con.close()
 
+
+
+
+
+
+
+
+
+
+
+    async def check_giveaway(self):
+        print("giveaway")
+        await asyncio.sleep(5) # Wait for bot to properly start up
+        try:
+            con = sqlite3.connect('./data/data.db')
+        except Exception as err:
+            log.error("Error: Could not connect to data.db." + str(err))
+            return
+        cur = con.cursor()
+        while True:
+            cur.execute(f"SELECT * FROM giveaways")
+            giveaways = cur.fetchall()
+            print(giveaways)
+            for g in giveaways:    # For each reminder
+                if round(int(g[3]), -2) <= round(int(time.time()), -2): # Round to nearest 10s place, and compare to current time
+                    log.debug(f"Found an upcoming giveaway in these 100 seconds.")
+                    for i in range(100):    # For each second
+                        await self.giveaway()
+                        await asyncio.sleep(1)  # task runs every second
+                    continue
+            await asyncio.sleep(10)  # Sleep for 100 seconds
+
+
+    async def giveaway(self):
+        con = sqlite3.connect('./data/data.db')
+        cur = con.cursor()
+        cur.execute(f"SELECT * FROM giveaways WHERE end_time <= {int(time.time())}")
+        giveaways = cur.fetchall()
+        if giveaways:   # If there are giveaways
+            for g in giveaways:         # For each giveaway that has ended
+                await self.get_winner(g)
+
+
+
+
+    async def get_winner(self, g):
+        con = sqlite3.connect('./data/data.db')
+        cur = con.cursor()
+        cur.execute(f"SELECT * FROM giveaways WHERE id={g[0]}")
+        d = cur.fetchone()
+        if d[5] == d[6]:
+            return
+        # Database Format => id, host_id, channel_id, duration, prize, selected_id, winner_id
+        #                     0     1       2           3           4         5          6
+        channel = self.client.get_channel(int(g[2]))  # Gets the channel from the giveaway
+        async for message in channel.history(limit=1):  # Gets the last message in the channel
+            if message.author.id == self.client.user.id:  # If the (giveaway)message is from the bot
+                if message.reactions:  # If the message has reactions
+                    for reaction in message.reactions:  # For each reaction
+                        if reaction.emoji == "🎉":  # If the reaction is the "🎉" emoji
+                            users = await reaction.users().flatten()  # Gets all the users that have reacted to the message
+                            if len(users) > 1:  # If there are users that have reacted to the message
+                                cur.execute(f"SELECT * FROM giveaways WHERE id={g[0]}")
+                                giveaway = cur.fetchone()
+                                print(8)
+                                if not giveaway:  # If the giveaway doesn't exist
+                                    return
+                                if True:
+                                    if str(giveaway[5]) != str(giveaway[6]):  # If the giveaway has not been selected
+                                        not_selected = True
+                                        while not_selected:   # While the selected has not redeemed
+                                            print(9)
+                                            cur.execute(f"SELECT * FROM giveaways WHERE id={g[0]}")
+                                            giveaway = cur.fetchone()
+                                            if str(giveaway[5]) == str(giveaway[6]):  # If the selected has redeemed the giveaway
+                                                break
+                                            winner = random.choice(users)   # Picks a random user from the list of users that have reacted to the message
+                                            print(11)
+                                            if winner.id != self.client.user.id:    # If the winner is not the bot
+                                                print(12)
+                                                if str(winner.id) != giveaway[5]:    # If the winner is not the previous selected
+                                                    print(13)
+                                                    cur_time = int(time.time())
+                                                    cur.execute(f"UPDATE giveaways SET selected={winner.id} WHERE id={g[0]}")
+                                                    con.commit()
+                                                    await channel.send(f"{winner.mention} you have won the giveaway! To redeem the prize, type `/giveaway redeem {g[0]}`. Your time ends  <t:{cur_time + 7200}:R>")
+                                                    await asyncio.sleep(10)   # Sleep for 2 hours
+
+                                print(14)
+                                cur.execute(f"DELETE FROM giveaways WHERE id={g[0]}")
+                                con.commit()
+                                con.close()
 
 
 

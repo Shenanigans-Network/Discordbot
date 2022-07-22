@@ -12,8 +12,9 @@
 #   This code is not intended to be edited but feel free to do so
 #   More info can be found on the GitHub page:
 #
+import random
 
-import discord, sqlite3
+import discord, sqlite3, time
 from discord.ext import commands
 from backend import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon, guild_id, serv_ips, embed_log, server_list, embed_url
 from backend import checkperm, logger, serverpower, sendcmd, get_permlvl, resetcount, status, mc_exists, log
@@ -40,6 +41,8 @@ class Admin(commands.Cog):
 
 
     admin = SlashCommandGroup("admin", "Various commands meant for server admins only.")
+    giveaway = SlashCommandGroup("giveaway", "Giveaway commands.")
+
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -274,7 +277,7 @@ class Admin(commands.Cog):
 
         embed = discord.Embed(title="Server Power", url="https://moonball.io/", color=embed_color)
         embed.set_author(name=embed_header, icon_url=embed_icon)
-        embed.add_field(name=f'Operation Successful!',value=f'Successfully performed the power action on the {server.capitalize()} Server!',inline=False)
+        embed.add_field(name=f'Operation Successful!',value=f'Successfully performed the power action on the {server.capitalize()} Server!', inline=False)
         embed.set_footer(text=embed_footer)
 
 
@@ -293,13 +296,13 @@ class Admin(commands.Cog):
 
                     # Wait for the user to confirm their choice
                     await view.wait()
-                    if view.value is None:
+                    if view.value is None:  # Timeout
                         await msg.edit_original_message(embed=discord.Embed(title=f"Power | {server.capitalize()}", description=f"Timed out waiting for confirmation, Aborting.", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), view=view)
                         return
-                    elif not view.value:
+                    elif not view.value:    # Cancel
                         await msg.edit_original_message(embed=discord.Embed(title=f"Power | {server.capitalize()}", description=f"Cancelled, Aborting.", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), view=view)
                         return
-                    elif view.value:
+                    elif view.value:        # Confirm
                         await msg.edit_original_message(embed=discord.Embed(title=f"Power | {server.capitalize()}", description=f"Confirmed, continuing with the operation.",color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), view=view)
 
         try:
@@ -446,15 +449,174 @@ class Admin(commands.Cog):
     @admin.command(name="giverole", description="ADMIN: Give a role to a user", guild_ids=[guild_id])
     async def give_role(self, ctx, user: discord.Member, role: discord.Role):
         if await checkperm(ctx, 3): return
-        # Check if role is @everyone
-        if role.id == "0":
-            await ctx.respond(embed=discord.Embed(title="Give Role", description="**Error!**\nYou cannot give the @everyone role.", color=discord.colour.Color.red()), ephemeral=True)
+        if role.position > ctx.author.top_role.position:  # if the role is above users top role it sends error
+            await ctx.respond(embed=discord.Embed(title="Give Role", description="**Error!**\nThe role is above your top role.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), ephemeral=True)
+            return
+        elif role in user.roles:
+            await ctx.respond(embed=discord.Embed(title="Give Role", description="**Error!**\nThat user already has that role.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), ephemeral=True)
             return
         await user.add_roles(role)
         embed = discord.Embed(title="Give Role", description=f"**Success!**\nThe role has been given to {user.mention}.", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
         await ctx.respond(embed=embed, ephemeral=True)
         await logger("a", f"`{ctx.author.name}#{ctx.author.discriminator}` gave `{user.name}` the role `{role.name}`", self.client)
 
+
+    @admin.command(name="takerole", description="ADMIN: Take a role from a user", guild_ids=[guild_id])
+    async def take_role(self, ctx, user: discord.Member, role: discord.Role):
+        if await checkperm(ctx, 3): return
+        if not role in user.roles:
+            await ctx.respond(embed=discord.Embed(title="Take Role", description="**Error!**\nThat user does not have that role.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), ephemeral=True)
+            return
+        if role.id == "894902529039687720": # @everyone
+            await ctx.respond(embed=discord.Embed(title="Take Role", description="**Error!**\nYou cannot take the @everyone role.", color=discord.colour.Color.red()), ephemeral=True)
+            return
+        await user.remove_roles(role)
+        embed = discord.Embed(title="Take Role", description=f"**Success!**\nThe role has been taken from {user.mention}.", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
+        await ctx.respond(embed=embed, ephemeral=True)
+        await logger("a", f"`{ctx.author.name}#{ctx.author.discriminator}` took `{user.name}` the role `{role.name}`", self.client)
+
+
+
+    # Giveaway Commands
+    @giveaway.command(name="start", description="Start a giveaway", guild_ids=[guild_id])
+    async def start_giveaway(self, ctx, amount: int,
+                       unit: discord.Option(choices=
+                       [
+                            discord.OptionChoice("Minute(s)", value="m"),
+                            discord.OptionChoice("Hour(s)", value="h"),
+                            discord.OptionChoice("Day(s)", value="d"),
+                            discord.OptionChoice("Week(s)", value="w"),
+                            discord.OptionChoice("Month(s)", value="mo"),
+                           ]),
+                       prize: str):
+
+        if await checkperm(ctx, 1): return
+        units = {"m" : 60, "h" : 3600, "d" : 86400, "w": 604800, "mo": 2592000}
+        if not amount > 0:
+            await ctx.respond("Quantity must be a positive number.", ephemeral=True)
+            return
+        seconds = units[unit] * amount
+
+        g_embed = discord.Embed(title="Giveaway", description=f"There's a giveaway!", color=embed_color)
+        g_embed.add_field(name="Host", value=f"{ctx.author.mention}")
+        g_embed.add_field(name="Prize", value=f"`{prize}`")
+        g_embed.set_footer(text=embed_footer)
+        g_embed.set_author(name=embed_header, icon_url=embed_icon)
+
+        class Confirm(discord.ui.View): # Confirm Button Class
+            def __init__(self):
+                super().__init__()
+                self.value = None
+                self.author = ctx.author
+
+
+            @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green)
+            async def confirm_callback(self, button: discord.ui.Button, interaction: discord.Interaction):
+                self.value = True
+                for child in self.children: # Disable all buttons
+                    child.disabled = True
+                await interaction.response.edit_message(view=self)
+                self.stop()
+
+            @discord.ui.button(label="Cancel", style=discord.ButtonStyle.grey)
+            async def cancel_callback(self, button: discord.ui.Button, interaction: discord.Interaction):
+                if not interaction.user.id == self.author.id:
+                    return await interaction.response.send_message("This button is not for you", ephemeral=True)
+                self.value = False
+                for child in self.children:
+                    child.disabled = True
+                await interaction.response.edit_message(view=self)
+                self.stop()
+
+        _view = Confirm()
+        g_embed.add_field(name="Duration", value=f"`{seconds}s`")
+
+        await ctx.respond("Here is the giveaway, Do you want to post it?", embed=g_embed, ephemeral=True, view=_view)
+        g_embed.remove_field(2)
+        await _view.wait()
+        if _view.value is None:  # timeout
+            await ctx.respond("Giveaway Cancelled. Didn't respond in time", ephemeral=True)
+            return
+        if not _view.value:    # cancel
+            await ctx.respond("Giveaway Cancelled", ephemeral=True)
+            return
+        # await ctx.respond("Confirmed :  Giveaway Starting", ephemeral=True)
+        g_embed.add_field(name="Duration", value=f"<t:{int(time.time()) + seconds}:R>")
+        g_msg = await ctx.channel.send(embed=g_embed)
+
+        duration = int(time.time()) + seconds
+        try:
+            con = sqlite3.connect("./data/data.db")
+        except Exception as e:
+            await ctx.respond(f"Error: {e}", ephemeral=True)
+            return
+        cur = con.cursor()
+        r_id = random.randint(1000000000, 9999999999)
+        # Database Format => id, host_id, channel_id, duration, prize, selected_id, winner_id
+        #                     0     1       2           3           4         5          6
+        cur.execute(f'INSERT INTO giveaways VALUES({r_id}, {ctx.author.id}, {ctx.channel.id}, {duration}, "{prize}", " ", "") ;')
+        con.commit()
+        con.close()
+        await g_msg.add_reaction("🎉")
+        await logger("a", f"`{ctx.author.name}#{ctx.author.discriminator}` started a giveaway for `{prize}`", self.client)
+
+
+
+    @giveaway.command(name="redeem", description="Redeem a giveaway", guild_ids=[guild_id])
+    async def redeem_giveaway(self, ctx, code: str):
+        if await checkperm(ctx, 0): return
+        try:
+            con = sqlite3.connect("./data/data.db")
+        except Exception as e:
+            await ctx.respond(f"Error: {e}", ephemeral=True)
+            return
+        cur = con.cursor()
+        cur.execute(f'SELECT * FROM giveaways WHERE id="{code}" ;')
+        data = cur.fetchone()
+        if data is None:
+            await ctx.respond("Invalid Code", ephemeral=True)
+            return
+        if data[5] == data[6]:
+            await ctx.respond("Giveaway Already Redeemed", ephemeral=True)
+            return
+        if not ctx.user.id == data[5]:
+            await ctx.respond("You are not the winner of this giveaway", ephemeral=True)
+            return
+
+        cur.execute(f'UPDATE giveaways SET winner={ctx.author.id} WHERE id={code};')
+        con.commit()
+        con.close()
+        await ctx.respond("Giveaway Redeemed", ephemeral=True)
+        await logger("a", f"`{ctx.author.name}#{ctx.author.discriminator}` redeemed a giveaway for `{data[4]}`", self.client)
+
+
+"""Traceback (most recent call last):
+  File "/home/container/.local/lib/python3.10/site-packages/discord/commands/core.py", line 126, in wrapped
+    ret = await coro(arg)
+  File "/home/container/.local/lib/python3.10/site-packages/discord/commands/core.py", line 852, in _invoke
+    await self.callback(self.cog, ctx, **kwargs)    
+  File "/home/container/cogs/admin.py", line 587, in redeem_giveaway
+    await logger("a", f"`{ctx.author.name}#{ctx.author.discriminator}` redeemed a giveaway for `{data[4]}`", self.client)
+  File "/home/container/backend.py", line 313, in logger
+    await logchannel.send(f'**{logtype[cat]}** : ' + f'#{countadd(cat)} ' + msg)  # Logs to Log channel
+  File "/home/container/backend.py", line 350, in countadd
+    c.execute(f'UPDATE counters SET count=:c WHERE cname=:n', {"c": count, "n": cat})
+sqlite3.OperationalError: database is locked
+The above exception was the direct cause of the following exception:
+Traceback (most recent call last):
+  File "/home/container/.local/lib/python3.10/site-packages/discord/bot.py", line 993, in invoke_application_command
+    await ctx.command.invoke(ctx)
+  File "/home/container/.local/lib/python3.10/site-packages/discord/commands/core.py", line 357, in invoke
+    await injected(ctx)
+  File "/home/container/.local/lib/python3.10/site-packages/discord/commands/core.py", line 126, in wrapped
+    ret = await coro(arg)
+  File "/home/container/.local/lib/python3.10/site-packages/discord/commands/core.py", line 1126, in _invoke
+    await command.invoke(ctx)
+  File "/home/container/.local/lib/python3.10/site-packages/discord/commands/core.py", line 357, in invoke
+    await injected(ctx)
+  File "/home/container/.local/lib/python3.10/site-packages/discord/commands/core.py", line 134, in wrapped
+    raise ApplicationCommandInvokeError(exc) from exc
+discord.errors.ApplicationCommandInvokeError: Application Command raised an exception: OperationalError: database is locked"""
 
 def setup(client):
     client.add_cog(Admin(client))

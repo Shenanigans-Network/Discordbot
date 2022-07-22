@@ -408,6 +408,8 @@ class Fun(commands.Cog):
         con = sqlite3.connect('./data/data.db')
         cur = con.cursor()
         rem_id = random.randint(1000000000,9999999999)
+        # Database Format => id, user_id, time, author_id, message
+        #                     0    1        2      3           4
         if message: # If there is a message to send
             message = message.replace('"', '')
             cur.execute(f'INSERT INTO reminders VALUES({rem_id}, {user.id}, {duration}, {ctx.author.id}, "{message}");')
@@ -415,14 +417,13 @@ class Fun(commands.Cog):
             cur.execute(f'INSERT INTO reminders VALUES({rem_id},{user.id}, {duration}, {ctx.author.id}, "");')
         con.commit()
         con.close()
-        r_embed = discord.Embed(title="Reminder", color=embed_color, description=f"{user.name} will be reminded in {quantity} {unit}.")
+        r_embed = discord.Embed(title="Reminder", color=embed_color, description=f"{user.name} will be reminded in `{quantity}`{unit}.")
         if message:
             r_embed.add_field(name="Message", value=f"`{message}`", inline=False)
         r_embed.add_field(name="ID", value=f"`{rem_id}`", inline=False)
         r_embed.set_footer(text=embed_footer)
         r_embed.set_author(name=embed_header, icon_url=embed_icon)
         await ctx.respond(embed=r_embed)
-
         await logger("f", f"`{ctx.author.name}#{ctx.author.discriminator}` set a reminder for `{user.id}`", self.client)
 
 
@@ -442,7 +443,8 @@ class Fun(commands.Cog):
         r_embed = discord.Embed(title="Reminders", color=embed_color, description="Here are your upcoming reminders")
         r_embed.set_footer(text=embed_footer)
         r_embed.set_author(name=embed_header, icon_url=embed_icon)
-
+        # Database Format => id, user_id, time, author_id, message
+        #                     0    1        2      3           4
         if reminders:
             output = ""
             for reminder in reminders:
