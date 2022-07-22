@@ -590,33 +590,5 @@ class Admin(commands.Cog):
         await logger("a", f"`{ctx.author.name}#{ctx.author.discriminator}` redeemed a giveaway for `{data[4]}`", self.client)
 
 
-"""Traceback (most recent call last):
-  File "/home/container/.local/lib/python3.10/site-packages/discord/commands/core.py", line 126, in wrapped
-    ret = await coro(arg)
-  File "/home/container/.local/lib/python3.10/site-packages/discord/commands/core.py", line 852, in _invoke
-    await self.callback(self.cog, ctx, **kwargs)    
-  File "/home/container/cogs/admin.py", line 587, in redeem_giveaway
-    await logger("a", f"`{ctx.author.name}#{ctx.author.discriminator}` redeemed a giveaway for `{data[4]}`", self.client)
-  File "/home/container/backend.py", line 313, in logger
-    await logchannel.send(f'**{logtype[cat]}** : ' + f'#{countadd(cat)} ' + msg)  # Logs to Log channel
-  File "/home/container/backend.py", line 350, in countadd
-    c.execute(f'UPDATE counters SET count=:c WHERE cname=:n', {"c": count, "n": cat})
-sqlite3.OperationalError: database is locked
-The above exception was the direct cause of the following exception:
-Traceback (most recent call last):
-  File "/home/container/.local/lib/python3.10/site-packages/discord/bot.py", line 993, in invoke_application_command
-    await ctx.command.invoke(ctx)
-  File "/home/container/.local/lib/python3.10/site-packages/discord/commands/core.py", line 357, in invoke
-    await injected(ctx)
-  File "/home/container/.local/lib/python3.10/site-packages/discord/commands/core.py", line 126, in wrapped
-    ret = await coro(arg)
-  File "/home/container/.local/lib/python3.10/site-packages/discord/commands/core.py", line 1126, in _invoke
-    await command.invoke(ctx)
-  File "/home/container/.local/lib/python3.10/site-packages/discord/commands/core.py", line 357, in invoke
-    await injected(ctx)
-  File "/home/container/.local/lib/python3.10/site-packages/discord/commands/core.py", line 134, in wrapped
-    raise ApplicationCommandInvokeError(exc) from exc
-discord.errors.ApplicationCommandInvokeError: Application Command raised an exception: OperationalError: database is locked"""
-
 def setup(client):
     client.add_cog(Admin(client))
