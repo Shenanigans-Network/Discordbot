@@ -378,7 +378,8 @@ class Fun(commands.Cog):
         await logger("f", f"Sent `{ctx.author.name}#{ctx.author.discriminator}` a 8Ball answer", self.client)
 
 
-    @commands.slash_command(name="remindme", description="Sets a reminder for you", guild_ids=[guild_id])
+
+    @commands.slash_command(name="remind", description="Sets a reminder for you", guild_ids=[guild_id])
     async def remindme(self, ctx, quantity: int,
                        unit: discord.Option(choices=
                        [
@@ -388,11 +389,10 @@ class Fun(commands.Cog):
                             discord.OptionChoice("Week(s)", value="w"),
                             discord.OptionChoice("Month(s)", value="mo"),
                            ]),
-                       user: discord.User,
-                       message: str=None):
+                       message: str=None,
+                       user: discord.User=None):
 
         if await checkperm(ctx, 0): return
-        # syntax -> /remindme [time] <message>
         units = {"m" : 60, "h" : 3600, "d" : 86400, "w": 604800, "mo": 2592000}
         if not quantity > 0:
             await ctx.respond("Quantity must be a positive number.", ephemeral=True)
@@ -456,6 +456,26 @@ class Fun(commands.Cog):
         await logger("f", f"`{ctx.author.name}#{ctx.author.discriminator}` got their reminders", self.client)
 
 
+    @commands.slash_command(name="delete-reminder", description="Deletes your reminder(s)", guild_ids=[guild_id])
+    async def delete_reminder(self, ctx, id: int):
+        if await checkperm(ctx, 0): return
+        try:
+            con = sqlite3.connect('./data/data.db')
+        except Exception as e:
+            log.error(f"Error while connecting to database. Error: {str(e)}")
+            return
+        cur = con.cursor()
+        # check if reminder exists
+        cur.execute(f'SELECT * FROM reminders WHERE user_id = {ctx.author.id} AND id = {id};')
+        reminder = cur.fetchone()
+        if not reminder:
+            await ctx.respond("You have no reminder with that ID.", ephemeral=True)
+            return
+        cur.execute(f'DELETE FROM reminders WHERE id = {id} AND user_id = {ctx.author.id};')
+        con.commit()
+        con.close()
+        await ctx.respond(f"I've successfully deleted reminder `{id}`", ephemeral=True)
+        await logger("f", f"`{ctx.author.name}#{ctx.author.discriminator}` deleted a reminder `{id}`", self.client)
 
 
 

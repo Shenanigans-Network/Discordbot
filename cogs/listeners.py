@@ -182,7 +182,6 @@ class Listeners(commands.Cog):
     async def remind(self):
         con = sqlite3.connect('./data/data.db')
         cur = con.cursor()
-        # function start time
         cur.execute(f"SELECT * FROM reminders WHERE time <= {int(time.time())}")
         reminders = cur.fetchall()
         if not reminders:   # If there are no reminders
@@ -210,9 +209,6 @@ class Listeners(commands.Cog):
             cur.execute(f"DELETE FROM reminders WHERE id={reminder[0]}")
             con.commit()
 
-
-
-        # function end time
 
 
 
