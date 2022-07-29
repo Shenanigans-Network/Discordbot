@@ -39,6 +39,15 @@ class Admin(commands.Cog):
         self.embed_log = embed_log
         self.choices = choices
 
+        try:
+            self.con = sqlite3.connect('./data/data.db')
+        except Exception as err:
+            log.error(f'[ADMIN] Error connecting to database: {err}')
+        self.cur = self.con.cursor()
+
+
+
+
 
     admin = SlashCommandGroup("admin", "Various commands meant for server admins only.")
     giveaway = SlashCommandGroup("giveaway", "Giveaway commands.")
@@ -254,6 +263,8 @@ class Admin(commands.Cog):
             # We also send the user an ephemeral message that we're confirming their choice.
             @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green)
             async def confirm_callback(self, button: discord.ui.Button, interaction: discord.Interaction):
+                if not interaction.user.id == self.author.id:
+                    return await interaction.response.send_message("This button is not for you", ephemeral=True)
                 self.value = True
                 for child in self.children: # Disable all buttons
                     child.disabled = True
@@ -331,16 +342,10 @@ class Admin(commands.Cog):
         if -1 <= int(level) <= 5:   # Level is between -1 and 5
             await msg.edit(embed=discord.Embed(title="Set Level - Error", description=f"**Error : Invalid Level**\nThe level of a user may be between `-1` and `5`! or {prefix}admin permlvl", color=embed_color))
             return
-        try:    # Try to connect to local database
-            con = sqlite3.connect('./data/data.db')
-        except Exception as err:    # If it fails, print the error
-            log.error(f"Could not connect to the local database. Error: {err}")
-            return
-        cur = con.cursor()
+        cur = self.con.cursor()
         old_level = await get_permlvl(user.id, class_type=False)
         cur.execute(f"UPDATE perms SET lvl = {level} WHERE user_id = '{user}';")
-        con.commit()
-        con.close()
+        self.con.commit()
         perm_embed = discord.Embed(title="Permission Level", description=f"Permission Level successfully changed!",color=embed_color)
         perm_embed.set_author(name=embed_header, icon_url=embed_icon)
         perm_embed.set_footer(text=embed_footer)
@@ -371,20 +376,13 @@ class Admin(commands.Cog):
     async def disconnect(self, ctx, username: str):
         if await checkperm(ctx, 3): return
         msg = await ctx.respond(embed=discord.Embed(title="Disconnect MC Account", description=f"*Disconnecting Account, Please hold on...*", color=embed_color), ephemeral=True)
-        try:    # Try to connect to local database
-            con = sqlite3.connect('./data/data.db')
-        except Exception as err:    # If it fails, print the error
-            log.error("Error: Could not connect to data.db." + str(err))
-            return
-        c = con.cursor()
-        c.execute(f"SELECT disc_id FROM connection WHERE mc_username = '{username}';")
-        result = c.fetchone()
+        self.cur.execute(f"SELECT disc_id FROM connection WHERE mc_username = '{username}';")
+        result = self.cur.fetchone()
         if not result:  # If the result is None, the user is not connected
             await msg.edit_original_message(embed=discord.Embed(title="Disconnect MC Account", description="**There was an Error!**\nThere is no Discord account connected to that Minecraft Account.", color=discord.colour.Color.red()))
             return
-        c.execute(f"DELETE FROM connection WHERE mc_username = '{username}';")
-        con.commit()
-        con.close()
+        self.cur.execute(f"DELETE FROM connection WHERE mc_username = '{username}';")
+        self.con.commit()
         discon_embed = discord.Embed(title="Disconnect MC Account", description=f"**Success!**\nThe Minecraft account has been disconnected from the Discord account.", color=embed_color)
         discon_embed.set_footer(text=embed_footer)
         discon_embed.set_author(name=embed_header, icon_url=embed_icon)
@@ -396,18 +394,12 @@ class Admin(commands.Cog):
     @admin.command(name="getconnection", description="ADMIN: Get the Discord Account connected to a Minecraft Account", guild_ids=[guild_id])
     async def get_connection(self, ctx, username: str):
         if await checkperm(ctx, 3): return
-        try:    # Try to connect to local database
-            con = sqlite3.connect('./data/data.db')
-        except Exception as err:
-            log.error("Error: Could not connect to data.db." + str(err))
-            return
-        c = con.cursor()
-        c.execute(f"SELECT disc_id FROM connection WHERE mc_username = '{username}';")
-        result = c.fetchone()
+        self.cur.execute(f"SELECT disc_id FROM connection WHERE mc_username = '{username}';")
+        result = self.cur.fetchone()
         if not result:  # If the result is None, the user is not connected
             await ctx.respond(embed=discord.Embed(title="Get Connection", description="**There was an Error!**\nThere is no Discord account connected to that Minecraft Account.", color=discord.colour.Color.red()))
             return
-        con.close()
+        self.con.commit()
         get_con_embed = discord.Embed(title="Get Connection", description=f"**Success!**\nGot the account connected.", color=embed_color)
         get_con_embed.set_footer(text=embed_footer)
         get_con_embed.set_author(name=embed_header, icon_url=embed_icon)
@@ -477,6 +469,30 @@ class Admin(commands.Cog):
 
 
 
+    @admin.command(name="execsql", description="ADMIN: Execute SQL", guild_ids=[guild_id])
+    async def exec_sql(self, ctx, sql: str):
+        if await checkperm(ctx, 5): return
+        try:
+            self.cur.execute(sql)
+        except Exception as e:
+            await ctx.respond(embed=discord.Embed(title="Execute SQL", description=f"**Error!**\n{e}", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), ephemeral=True)
+            return
+        res = self.cur.fetchall()
+        if len(res) == 0:
+            embed = discord.Embed(title="Execute SQL", description="**Success!**\nNo results found.", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
+        else:
+            embed = discord.Embed(title="Execute SQL", description="**Success!**\nResults found.", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
+            for i in res:
+                embed.add_field(name=str(i[0]), value=str(i[1]), inline=False)
+        await ctx.respond(embed=embed, ephemeral=True)
+        # await ctx.respond(embed=discord.Embed(title="Execute SQL", description=f"**Success!**\nThe SQL has been executed.", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), ephemeral=True)
+
+
+
+
+
+
+
     # Giveaway Commands
     @giveaway.command(name="start", description="Start a giveaway", guild_ids=[guild_id])
     async def start_giveaway(self, ctx, amount: int,
@@ -512,6 +528,8 @@ class Admin(commands.Cog):
 
             @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green)
             async def confirm_callback(self, button: discord.ui.Button, interaction: discord.Interaction):
+                if not interaction.user.id == self.author.id:
+                    return await interaction.response.send_message("This button is not for you", ephemeral=True)
                 self.value = True
                 for child in self.children: # Disable all buttons
                     child.disabled = True
@@ -545,18 +563,13 @@ class Admin(commands.Cog):
         g_msg = await ctx.channel.send(embed=g_embed)
 
         duration = int(time.time()) + seconds
-        try:
-            con = sqlite3.connect("./data/data.db")
-        except Exception as e:
-            await ctx.respond(f"Error: {e}", ephemeral=True)
-            return
-        cur = con.cursor()
+
+        cur = self.con.cursor()
         r_id = random.randint(1000000000, 9999999999)
         # Database Format => id, host_id, channel_id, duration, prize, selected_id, winner_id
         #                     0     1       2           3           4         5          6
         cur.execute(f'INSERT INTO giveaways VALUES({r_id}, {ctx.author.id}, {ctx.channel.id}, {duration}, "{prize}", " ", "") ;')
-        con.commit()
-        con.close()
+        self.con.commit()
         await g_msg.add_reaction("🎉")
         await logger("a", f"`{ctx.author.name}#{ctx.author.discriminator}` started a giveaway for `{prize}`", self.client)
 
@@ -565,14 +578,8 @@ class Admin(commands.Cog):
     @giveaway.command(name="redeem", description="Redeem a giveaway", guild_ids=[guild_id])
     async def redeem_giveaway(self, ctx, code: str):
         if await checkperm(ctx, 0): return
-        try:
-            con = sqlite3.connect("./data/data.db")
-        except Exception as e:
-            await ctx.respond(f"Error: {e}", ephemeral=True)
-            return
-        cur = con.cursor()
-        cur.execute(f'SELECT * FROM giveaways WHERE id="{code}" ;')
-        data = cur.fetchone()
+        self.cur.execute(f'SELECT * FROM giveaways WHERE id="{code}" ;')
+        data = self.cur.fetchone()
         if data is None:
             await ctx.respond("Invalid Code", ephemeral=True)
             return
@@ -582,12 +589,12 @@ class Admin(commands.Cog):
         if not ctx.user.id == data[5]:
             await ctx.respond("You are not the winner of this giveaway", ephemeral=True)
             return
-
-        cur.execute(f'UPDATE giveaways SET winner={ctx.author.id} WHERE id={code};')
-        con.commit()
-        con.close()
+        self.cur.execute(f'DELETE giveaways WHERE id={code};')
+        self.con.commit()
         await ctx.respond("Giveaway Redeemed", ephemeral=True)
         await logger("a", f"`{ctx.author.name}#{ctx.author.discriminator}` redeemed a giveaway for `{data[4]}`", self.client)
+
+
 
 
 def setup(client):

@@ -48,6 +48,8 @@ except Exception as e:
 
 
 
+
+
 #  ==Getting variables from config file==
 try:
     prefix: str = config.get('general', 'prefix')
@@ -111,6 +113,14 @@ def colorlogger(name='moonball'):
     return logger # Return the logger
 
 log = colorlogger()
+
+try:
+    con = sqlite3.connect('./data/data.db')
+except Exception as err:
+    log.error("Error: Could not connect to data.db." + str(err))
+    exit(1)
+# noinspection PyUnboundLocalVariable
+cur = con.cursor()
 
 
 # noinspection PyUnboundLocalVariable
@@ -245,10 +255,8 @@ async def serverstatus(ctx, server: str, isslash: bool = True):
 
 # This function gets the corresponding connected Minecraft account of the user from their Discord ID
 async def get_con(disc_id: int) -> str | None:
-    con = sqlite3.connect('./data/data.db')
-    c = con.cursor()
-    c.execute(f"SELECT mc_username FROM connection WHERE disc_id = '{disc_id}';")
-    result = c.fetchone()
+    cur.execute(f"SELECT mc_username FROM connection WHERE disc_id = '{disc_id}';")
+    result = cur.fetchone()
     log.debug(f"get_con: {result}")
     if result:
         return result[0]
@@ -269,11 +277,11 @@ async def mc_exists(username: str) -> bool:
             database=db_name
         )
     except mysql.connector.Error as e:  # If there is an error
-        log.error("Unable to connect to the Authme MYSQL database. Are the credentials within config.ini correct? Error: ", e)
+        log.error(f"Unable to connect to the Authme MYSQL database. Are the credentials within config.ini correct? Error: {e}")
         return False
-    cur = mydb.cursor()
-    cur.execute(f"SELECT username FROM authme WHERE username = '{username}';")
-    result = cur.fetchone()
+    c = mydb.cursor()
+    c.execute(f"SELECT username FROM authme WHERE username = '{username}';")
+    result = c.fetchone()
     mydb.close()
     log.debug(f"mc_exists: {result}")
     if result:
@@ -317,20 +325,14 @@ async def logger(cat, msg, client):  # Logs to Log channel
 
 
 async def resetcount(ctx, kw: str) -> bool:  # Counter Add Function
-    try:
-        db = sqlite3.connect('./data/data.db')
-    except Exception as e:
-        log.critical("Unable to connect to data.db. Error : ", str(e))
-        return False
-    c = db.cursor()
+
     name_dict = {"s": "suggestion", "f": "fun", "h": "help", "i": "info", "a": "admin", "m": "minecraft", "o": "other", "all": "all"}
     if kw == "all":
         for cat in ["a", "s", "f", "i", "h", "m", "o"]:
-            c.execute(f'UPDATE counters SET count=:c WHERE cname=:n', {"c": 0, "n": cat})
+            cur.execute(f'UPDATE counters SET count=:c WHERE cname=:n', {"c": 0, "n": cat})
     else:
-        c.execute(f'UPDATE counters SET count=:c WHERE cname=:n', {"c": 0, "n":kw})
-    db.commit()
-    db.close()
+        cur.execute(f'UPDATE counters SET count=:c WHERE cname=:n', {"c": 0, "n":kw})
+    con.commit()
     log.debug(f"resetcount: {kw}")
     await logger("a", f"`{name_dict[kw]}` Counter was reset by `{ctx.author.name}#{ctx.author.discriminator}`", client)  # Logs to Log channel
     return True
@@ -338,18 +340,11 @@ async def resetcount(ctx, kw: str) -> bool:  # Counter Add Function
 
 
 def countadd(cat: str) -> int | None:  # Counter Add Function
-    try:
-        db = sqlite3.connect('./data/data.db')
-    except Exception as err:
-        log.error("Error: Could not connect to the database." + str(err))
-        return None
-    c = db.cursor()
-    c.execute(f'SELECT count FROM counters WHERE cname=:n', {"n": cat})
-    count = c.fetchone()[0]
+    cur.execute(f'SELECT count FROM counters WHERE cname=:n', {"n": cat})
+    count = cur.fetchone()[0]
     count += 1
-    c.execute(f'UPDATE counters SET count=:c WHERE cname=:n', {"c": count, "n": cat})
-    db.commit()
-    db.close()
+    cur.execute(f'UPDATE counters SET count=:c WHERE cname=:n', {"c": count, "n": cat})
+    con.commit()
     return count
 
 
@@ -407,10 +402,10 @@ async def serverpower(server: str, power: str) -> bool:  # Sets the power of a s
 
 
 # This function sends a Console Command to a server from the Pterodactyl API.
-async def sendcmd(servername: str, cmd: str) -> bool:
-    url = f'https://{ptero_panel}/api/client/servers/{server_guide[servername]}/command'
+async def sendcmd(server_name: str, command: str) -> bool:
+    url = f'https://{ptero_panel}/api/client/servers/{server_guide[server_name]}/command'
     headers = {"Authorization": f"Bearer {ptero_apikey}", "Accept": "application/json","Content-Type": "application/json"}
-    payload = json.dumps({"command": cmd})
+    payload = json.dumps({"command": command})
     response = ''
     try:
         response = requests.request('POST', url, data=payload, headers=headers)
@@ -429,12 +424,6 @@ async def sendcmd(servername: str, cmd: str) -> bool:
 
 async def get_permlvl(user, class_type=True) -> -1 | 0 | 1 | 2 | 3 | 4 | 5:
     user = user.id if class_type else user
-    try:
-        con = sqlite3.connect('./data/data.db')
-    except Exception as err:
-        log.error("Error: Could not connect to data.db." + str(err))
-        return
-    cur = con.cursor()
     cur.execute(f"SELECT * FROM perms WHERE user_id={user}")
     result = cur.fetchone()
     if result is None:
@@ -442,7 +431,6 @@ async def get_permlvl(user, class_type=True) -> -1 | 0 | 1 | 2 | 3 | 4 | 5:
         con.commit()
         cur.execute(f"SELECT * FROM perms WHERE user_id={user}")
         result = cur.fetchone()
-    con.close()
     log.debug(f"get_permlvl: {result[1]}")
     return result[1]
 

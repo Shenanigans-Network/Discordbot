@@ -104,7 +104,7 @@ for filename in os.listdir('./cogs'):
     if filename.endswith('.py'):
         client.load_extension(f'cogs.{filename[:-3]}')
         cog_list.append(filename[:-3])
-log.debug(f"Loaded {len(cog_list)} cogs. List: {cog_list}")
+log.debug(f"Found {len(cog_list)} cogs. List: {cog_list}")
 
 
 

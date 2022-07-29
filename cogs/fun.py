@@ -17,6 +17,8 @@ import discord, random, sqlite3, aiohttp, time, re, datetime
 from discord.ext import commands
 from backend import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon, guild_id, embed_log, suggestion_channel, tick_emoji, cross_emoji, one_emoji, two_emoji, three_emoji, four_emoji   # Import bot variables
 from backend import checkperm, logger, countadd, log                                     # Import functions
+from discord.commands import SlashCommandGroup
+
 
 
 class Fun(commands.Cog):
@@ -32,6 +34,7 @@ class Fun(commands.Cog):
         self.embed_log = embed_log
         self.suggestion_channel_id = suggestion_channel
 
+    reminder = SlashCommandGroup("reminder", "Reminder related commands.")
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -379,8 +382,8 @@ class Fun(commands.Cog):
 
 
 
-    @commands.slash_command(name="remind", description="Sets a reminder for you", guild_ids=[guild_id])
-    async def remindme(self, ctx, quantity: int,
+    @reminder.command(name="create", description="Sets a reminder for you", guild_ids=[guild_id])
+    async def reminder_create(self, ctx, quantity: int,
                        unit: discord.Option(choices=
                        [
                             discord.OptionChoice("Minute(s)", value="m"),
@@ -428,8 +431,8 @@ class Fun(commands.Cog):
 
 
 
-    @commands.slash_command(name="reminders", description="Gets all your reminders", guild_ids=[guild_id])
-    async def reminders(self, ctx):
+    @reminder.command(name="upcoming", description="Gets all your reminders", guild_ids=[guild_id])
+    async def upcoming_reminders(self, ctx):
         if await checkperm(ctx, 0): return
         try:
             con = sqlite3.connect('./data/data.db')
@@ -448,7 +451,7 @@ class Fun(commands.Cog):
         if reminders:
             output = ""
             for reminder in reminders:
-                output += f"`{reminder[0]}` <t:{reminder[2]}:R>\n"
+                output += f"`{reminder[0]}` <t:{reminder[2]}:R> `{reminder[4]}`\n"
             r_embed.add_field(name="Upcoming Reminders", value=output, inline=False)
 
         else:
@@ -458,7 +461,7 @@ class Fun(commands.Cog):
         await logger("f", f"`{ctx.author.name}#{ctx.author.discriminator}` got their reminders", self.client)
 
 
-    @commands.slash_command(name="delete-reminder", description="Deletes your reminder(s)", guild_ids=[guild_id])
+    @reminder.command(name="delete", description="Deletes your reminder(s)", guild_ids=[guild_id])
     async def delete_reminder(self, ctx, id: int):
         if await checkperm(ctx, 0): return
         try:
@@ -480,6 +483,65 @@ class Fun(commands.Cog):
         await logger("f", f"`{ctx.author.name}#{ctx.author.discriminator}` deleted a reminder `{id}`", self.client)
 
 
+
+    # delete all reminders for a user
+    @reminder.command(name="deleteall", description="Deletes all your reminders", guild_ids=[guild_id])
+    async def delete_all_reminders(self, ctx):
+        if await checkperm(ctx, 0): return
+        try:
+            con = sqlite3.connect('./data/data.db')
+        except Exception as e:
+            log.error(f"Error while connecting to database. Error: {str(e)}")
+            return
+        cur = con.cursor()
+        cur.execute(f'SELECT * FROM reminders WHERE user_id = {ctx.author.id};')
+        reminders = cur.fetchall()
+        if reminders:
+            num = len(reminders)
+        else:
+            await ctx.respond("You have no reminders.", ephemeral=True)
+
+        class Confirm(discord.ui.View): # Confirm Button Class
+            def __init__(self):
+                super().__init__()
+                self.value = None
+                self.author = ctx.author
+
+            @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green)
+            async def confirm_callback(self, button: discord.ui.Button, interaction: discord.Interaction):
+                if not interaction.user.id == self.author.id:
+                    return await interaction.response.send_message("This button is not for you", ephemeral=True)
+                self.value = True
+                for child in self.children: # Disable all buttons
+                    child.disabled = True
+                await interaction.response.edit_message(view=self)
+                self.stop()
+
+            @discord.ui.button(label="Cancel", style=discord.ButtonStyle.grey)
+            async def cancel_callback(self, button: discord.ui.Button, interaction: discord.Interaction):
+                if not interaction.user.id == self.author.id:
+                    return await interaction.response.send_message("This button is not for you", ephemeral=True)
+                self.value = False
+                for child in self.children:
+                    child.disabled = True
+                await interaction.response.edit_message(view=self)
+                self.stop()
+
+        _view = Confirm()
+        await ctx.respond("Are you sure you want to delete all of your reminders?", ephemeral=True, view=_view)
+        await _view.wait()
+        if _view.value is None:  # timeout
+            await ctx.respond("Deletion Cancelled. Didn't respond in time", ephemeral=True)
+            return
+        if not _view.value:    # cancel
+            await ctx.respond("Deletion Cancelled", ephemeral=True)
+            return
+
+        cur.execute(f'DELETE FROM reminders WHERE user_id = {ctx.author.id};')
+        con.commit()
+        con.close()
+        await ctx.respond(f"I've successfully deleted all reminders for you", ephemeral=True)
+        await logger("f", f"`{ctx.author.name}#{ctx.author.discriminator}` deleted all reminders", self.client)
 
 def setup(client):
     client.add_cog(Fun(client))

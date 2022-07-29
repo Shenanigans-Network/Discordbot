@@ -13,35 +13,43 @@
 #   More info can be found on the GitHub page
 #
 import random
-
 import discord, datetime, sqlite3, asyncio, time
-from discord.ext import commands
+from discord.ext import commands, tasks
 from backend import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon, server_list, welcome_channel, embed_url, suggestion_channel, roles_synced, guild_id, member_role, general_channel  # Import bot variables
 from backend import logger, serverstatus, get_con, sendcmd, ip_embed, version_embed, log    # Import bot functions
 
-
+# TODO: Fix tasks
 
 class Listeners(commands.Cog):
     """Event Listeners for the Bot."""
     def __init__(self, client):
         self.client = client
-        self.embed_color = embed_color
         self.embed_icon = embed_icon
         self.embed_header = embed_header
         self.embed_footer = embed_footer
         self.prefix = prefix
         self.bot_version = bot_version
-        # self.welcome_channel = welcome_channel
+        self.guild_id = int(guild_id)
+
+        try:
+            self.con = sqlite3.connect('./data/data.db')
+        except Exception as err:
+            log.error("Error: Could not connect to data.db." + str(err))
+            return
+        self.cur = self.con.cursor()
+
+        self.check_reminders.start()
+        self.check_giveaway.start()
+        self.check_for_birthday.start()
 
 
     @commands.Cog.listener()
     async def on_ready(self):
         global welcome_channel
-        await self.check_giveaway()
-        await self.check_reminders()
-        await self.check_for_birthday()
         welcome_channel = self.client.get_channel(welcome_channel)
         log.info("Cog : Listeners.py Loaded")
+        # await self.call_functions()
+
 
 
     # On-Message
@@ -75,7 +83,7 @@ class Listeners(commands.Cog):
         welcome_embed.set_image(url="https://cdn.discordapp.com/attachments/988082459658813490/988083938952093736/welcome-minecraft.gif")
         welcome_embed.set_footer(text=embed_footer)
         await self.client.get_channel(welcome_channel).send(embed=welcome_embed)
-        role = discord.utils.get(self.client.get_guild(guild_id).roles, id=member_role)
+        role = discord.utils.get(self.client.get_guild(self.guild_id).roles, id=member_role)
         await member.add_roles(role)
         await logger("o", f"Sent Welcome Embed to `{member.name}#{member.discriminator}`", self.client)
 
@@ -131,63 +139,51 @@ class Listeners(commands.Cog):
 
 
 
+
+
+    # Runs every 1 day
+    @tasks.loop(seconds=86400)
     async def check_for_birthday(self):
-        while True:
-            now = datetime.datetime.now()
-            curmonth = now.month
-            curday = now.day
-            try:
-                con = sqlite3.connect('./data/data.db')
-            except Exception as err:
-                log.error("Error: Could not connect to data.db." + str(err))
-                return
-            cur = con.cursor()
-            cur.execute(f"SELECT * FROM birthdays WHERE month={curmonth} AND day={curday}")
-            birthdays = cur.fetchall()
-            con.close()
-            if birthdays:
-                user = self.client.get_user(int(birthdays[0][0]))
+        log.debug("Birthday Checker Started")
+        now = datetime.datetime.now()
+        curmonth = now.month
+        curday = now.day
+        self.cur.execute(f"SELECT * FROM birthdays WHERE month={curmonth} AND day={curday}")
+        birthdays = self.cur.fetchall()
+        if birthdays:
+            for birthday in birthdays:
+                user = self.client.get_user(int(birthday[0]))
+                log.debug(f"Today is {curmonth}/{curday} and {user.id} has a birthday!")
                 try:
                     await user.send("Happy birthday! :tada:")
                     log.debug("Sent birthday message to " + str(user))
-                    await self.client.get_channel(welcome_channel).send(f"<@{int(birthdays[0][0])}> has had their birthday today! :tada:")
+                    await self.client.get_channel(int(welcome_channel)).send(f"<@{int(birthday[0])}> has had their birthday today! :tada:")
                 except Exception as e:
-                    log.error(f"Error while sending birthday message and Giving role to {user}. Error: {str(e)}")
-                log.debug(f"Today is {curmonth}/{curday} and {user} has a birthday!")
-            else:
-                log.debug("No birthdays today.")
-            await asyncio.sleep(86400)  # task runs every
+                    log.error(f"Error while sending birthday message and Giving role to {user.id}. Error: {str(e)}")
+        else:
+            log.debug("No birthdays today.")
 
 
-
+    @tasks.loop(seconds=100)
     async def check_reminders(self):
-        await asyncio.sleep(5) # Wait for bot to properly start up
-        try:
-            con = sqlite3.connect('./data/data.db')
-        except Exception as err:
-            log.error("Error: Could not connect to data.db." + str(err))
-            return
-        cur = con.cursor()
-        while True:
-            cur.execute(f"SELECT * FROM reminders")
-            for r in cur.fetchall():    # For each reminder
-                if round(int(r[2]), -2) <= round(int(time.time()), -2): # Round to nearest 10s place, and compare to current time
-                    log.debug(f"Found an upcoming reminder in these 100 seconds.")
-                    for i in range(100):    # For each second
-                        await self.remind()
-                        await asyncio.sleep(1)  # task runs every second
-                    continue
-            await asyncio.sleep(100)  # Sleep for 100 seconds
+        log.debug("Reminder Check Started")
+
+        self.cur.execute(f"SELECT * FROM reminders")
+        for r in self.cur.fetchall():    # For each reminder
+            if round(int(r[2]), -2) <= round(int(time.time()), -2): # Round to nearest 10s place, and compare to current time
+                log.debug(f"Found an upcoming reminder in these 100 seconds.")
+                for i in range(100):    # For each second
+                    await self.remind()
+                    await asyncio.sleep(1)  # task runs every second
+                continue
 
 
     # Database Format => id, user_id, time, author_id, message
     #                     0    1        2      3           4
 
     async def remind(self):
-        con = sqlite3.connect('./data/data.db')
-        cur = con.cursor()
-        cur.execute(f"SELECT * FROM reminders WHERE time <= {int(time.time())}")
-        reminders = cur.fetchall()
+        self.cur.execute(f"SELECT * FROM reminders WHERE time <= {int(time.time())}")
+        reminders = self.cur.fetchall()
         if not reminders:   # If there are no reminders
             return
 
@@ -196,23 +192,22 @@ class Listeners(commands.Cog):
         r_embed.set_author(name=embed_header, icon_url=embed_icon)
 
         for reminder in reminders:  # For each reminder
-            if int(reminder[3]) != int(reminder[1]):    # If the reminder has been sent from someone else
+            if not int(reminder[3]) == int(reminder[1]):    # If the reminder has been sent from someone else
                 r_embed.add_field(name="Sender", value=f"<@{reminder[3]}>", inline=False)
             user = self.client.get_user(int(reminder[1]))
 
             if reminder[4]: # If the reminder has a message
-                r_embed.add_field(name="Message", value=f"`{reminder[4]}`") # Adds the message to the embed
+                r_embed.add_field(name="Message", value=f"`{reminder[4]}`", inline=False) # Adds the message to the embed
 
             try:    # Send the reminder
                 await user.send(embed=r_embed) # Sends the reminder to the user
             except Exception as e:  # If I couldn't DM the user
-                await self.client.get_guild(guild_id).get_channel(general_channel).send(f"Hey {user.mention}! Couldn't DM you your reminder.", embed=r_embed)
+                await self.client.get_guild(int(guild_id)).get_channel(int(general_channel)).send(f"Hey {user.mention}! Couldn't DM you your reminder.", embed=r_embed)
                 log.error(f"Error while DMing reminder to {user.id}. Error: {str(e)}")
 
             await logger("f", f"Sent reminder from `{reminder[3]}` to `{user}`", self.client)
-            cur.execute(f"DELETE FROM reminders WHERE id={reminder[0]}")
-            con.commit()
-            con.close()
+            self.cur.execute(f"DELETE FROM reminders WHERE id={reminder[0]}")
+            self.con.commit()
 
 
 
@@ -223,35 +218,26 @@ class Listeners(commands.Cog):
 
 
 
-
+    @tasks.loop(seconds=100)
     async def check_giveaway(self):
-        print("giveaway")
-        await asyncio.sleep(5) # Wait for bot to properly start up
-        try:
-            con = sqlite3.connect('./data/data.db')
-        except Exception as err:
-            log.error("Error: Could not connect to data.db." + str(err))
-            return
-        cur = con.cursor()
-        while True:
-            cur.execute(f"SELECT * FROM giveaways")
-            giveaways = cur.fetchall()
-            print(giveaways)
-            for g in giveaways:    # For each reminder
-                if round(int(g[3]), -2) <= round(int(time.time()), -2): # Round to nearest 10s place, and compare to current time
-                    log.debug(f"Found an upcoming giveaway in these 100 seconds.")
-                    for i in range(100):    # For each second
-                        await self.giveaway()
-                        await asyncio.sleep(1)  # task runs every second
-                    continue
-            await asyncio.sleep(10)  # Sleep for 100 seconds
+        log.debug("Giveaway Checker Started.")
+
+        self.cur.execute(f"SELECT * FROM giveaways")
+        giveaways = self.cur.fetchall()
+        log.debug(giveaways)
+        for g in giveaways:    # For each reminder
+            if round(int(g[3]), -2) <= round(int(time.time()), -2): # Round to nearest 10s place, and compare to current time
+                log.debug(f"Found an upcoming giveaway in these 100 seconds.")
+                for i in range(100):    # For each second
+                    await self.giveaway()
+                    await asyncio.sleep(1)  # task runs every second
+                continue
 
 
     async def giveaway(self):
-        con = sqlite3.connect('./data/data.db')
-        cur = con.cursor()
-        cur.execute(f"SELECT * FROM giveaways WHERE end_time <= {int(time.time())}")
-        giveaways = cur.fetchall()
+
+        self.cur.execute(f"SELECT * FROM giveaways WHERE end_time <= {int(time.time())}")
+        giveaways = self.cur.fetchall()
         if giveaways:   # If there are giveaways
             for g in giveaways:         # For each giveaway that has ended
                 await self.get_winner(g)
@@ -260,10 +246,9 @@ class Listeners(commands.Cog):
 
 
     async def get_winner(self, g):
-        con = sqlite3.connect('./data/data.db')
-        cur = con.cursor()
-        cur.execute(f"SELECT * FROM giveaways WHERE id={g[0]}")
-        d = cur.fetchone()
+
+        self.cur.execute(f"SELECT * FROM giveaways WHERE id={g[0]}")
+        d = self.cur.fetchone()
         if d[5] == d[6]:
             return
         # Database Format => id, host_id, channel_id, duration, prize, selected_id, winner_id
@@ -276,38 +261,39 @@ class Listeners(commands.Cog):
                         if reaction.emoji == "🎉":  # If the reaction is the "🎉" emoji
                             users = await reaction.users().flatten()  # Gets all the users that have reacted to the message
                             if len(users) > 1:  # If there are users that have reacted to the message
-                                cur.execute(f"SELECT * FROM giveaways WHERE id={g[0]}")
-                                giveaway = cur.fetchone()
-                                print(8)
+                                self.cur.execute(f"SELECT * FROM giveaways WHERE id={g[0]}")
+                                giveaway = self.cur.fetchone()
                                 if not giveaway:  # If the giveaway doesn't exist
                                     return
                                 if True:
                                     if str(giveaway[5]) != str(giveaway[6]):  # If the giveaway has not been selected
                                         not_selected = True
                                         while not_selected:   # While the selected has not redeemed
-                                            print(9)
-                                            cur.execute(f"SELECT * FROM giveaways WHERE id={g[0]}")
-                                            giveaway = cur.fetchone()
+                                            self.cur.execute(f"SELECT * FROM giveaways WHERE id={g[0]}")
+                                            giveaway = self.cur.fetchone()
                                             if str(giveaway[5]) == str(giveaway[6]):  # If the selected has redeemed the giveaway
-                                                break
+                                                pass
+                                                self.cur.execute("DELETE FROM giveaways WHERE id={g[0]}")
+                                                self.con.commit()
+                                                self.con.close()
+                                                return
                                             winner = random.choice(users)   # Picks a random user from the list of users that have reacted to the message
-                                            print(11)
                                             if winner.id != self.client.user.id:    # If the winner is not the bot
-                                                print(12)
                                                 if str(winner.id) != giveaway[5]:    # If the winner is not the previous selected
-                                                    print(13)
                                                     cur_time = int(time.time())
-                                                    cur.execute(f"UPDATE giveaways SET selected={winner.id} WHERE id={g[0]}")
-                                                    con.commit()
+                                                    self.cur.execute(f"UPDATE giveaways SET selected={winner.id} WHERE id={g[0]}")
+                                                    self.con.commit()
                                                     await channel.send(f"{winner.mention} you have won the giveaway! To redeem the prize, type `/giveaway redeem {g[0]}`. Your time ends  <t:{cur_time + 7200}:R>")
                                                     await asyncio.sleep(10)   # Sleep for 2 hours
+                                    else:
+                                        self.cur.execute(f"DELETE FROM giveaways WHERE id={g[0]}")
+                                        self.con.commit()
 
-                                print(14)
-                                cur.execute(f"DELETE FROM giveaways WHERE id={g[0]}")
-                                con.commit()
-                                con.close()
-
-
+    @check_reminders.before_loop
+    @check_for_birthday.before_loop
+    @check_giveaway.before_loop
+    async def before_my_task(self):
+        await self.client.wait_until_ready()
 
 def setup(client):
     client.add_cog(Listeners(client))
