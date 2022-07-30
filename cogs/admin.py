@@ -41,8 +41,9 @@ class Admin(commands.Cog):
 
         try:
             self.con = sqlite3.connect('./data/data.db')
-        except Exception as err:
-            log.error(f'[ADMIN] Error connecting to database: {err}')
+        except Exception as e:
+            log.critical(f"[ADMIN]: Error while connecting to database. Error: {str(e)}")
+            exit(2)
         self.cur = self.con.cursor()
 
 
@@ -525,7 +526,6 @@ class Admin(commands.Cog):
                 self.value = None
                 self.author = ctx.author
 
-
             @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green)
             async def confirm_callback(self, button: discord.ui.Button, interaction: discord.Interaction):
                 if not interaction.user.id == self.author.id:
@@ -575,6 +575,9 @@ class Admin(commands.Cog):
 
 
 
+
+
+
     @giveaway.command(name="redeem", description="Redeem a giveaway", guild_ids=[guild_id])
     async def redeem_giveaway(self, ctx, code: str):
         if await checkperm(ctx, 0): return
@@ -583,15 +586,22 @@ class Admin(commands.Cog):
         if data is None:
             await ctx.respond("Invalid Code", ephemeral=True)
             return
-        if data[5] == data[6]:
-            await ctx.respond("Giveaway Already Redeemed", ephemeral=True)
-            return
+        if data[6] is not None:
+            if data[5] == data[6]:
+                await ctx.respond("Giveaway Already Redeemed", ephemeral=True)
+                return
         if not ctx.user.id == data[5]:
             await ctx.respond("You are not the winner of this giveaway", ephemeral=True)
             return
-        self.cur.execute(f'DELETE giveaways WHERE id={code};')
+        self.cur.execute(f'DELETE FROM giveaways WHERE id={code};')
         self.con.commit()
         await ctx.respond("Giveaway Redeemed", ephemeral=True)
+        g_embed = discord.Embed(title="Giveaway", description=f"We have a Winner!", color=embed_color)
+        g_embed.add_field(name="Host", value=data[1].mention, inline=True)
+        g_embed.add_field(name="Winner", value=ctx.author.mention, inline=True)
+        g_embed.add_field(name="Prize", value=f"`{data[4]}`", inline=False)
+        g_embed.set_footer(text=embed_footer)
+        await self.client.get_channel(data[2]).send(embed=g_embed)
         await logger("a", f"`{ctx.author.name}#{ctx.author.discriminator}` redeemed a giveaway for `{data[4]}`", self.client)
 
 

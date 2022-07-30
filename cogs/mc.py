@@ -51,6 +51,13 @@ class MC(commands.Cog):
         self.bot_version = bot_version
         self.mc = mc
 
+        try:
+            self.con = sqlite3.connect('./data/data.db')
+        except Exception as e:
+            log.critical(f"[MC]: Error while connecting to database. Error: {str(e)}")
+            exit(2)
+        self.cur = self.con.cursor()
+
     mc = SlashCommandGroup("mc", "Various commands meant for users that have connected their MC account.")
 
     @commands.Cog.listener()
@@ -66,19 +73,13 @@ class MC(commands.Cog):
         if charsfound:
             await msg.edit_original_message(embed=discord.Embed(title="Connect MC Account", description=f"**There was an error!**\nThe username contains illegal character(s)!\n{charsfound}", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
-        try:
-            con = sqlite3.connect('./data/data.db')
-        except Exception as err:
-            print("Error: Could not connect to data.db." + str(err))
-            return
-        cursor = con.cursor()
-        cursor.execute(f"SELECT * FROM connection WHERE disc_id = '{ctx.author.id}';")  # Get the discord user from the database
-        id_result = cursor.fetchone()
+        self.cur.execute(f"SELECT * FROM connection WHERE disc_id = '{ctx.author.id}';")  # Get the discord user from the database
+        id_result = self.cur.fetchone()
         if id_result:   # If the user is in the database
             await msg.edit_original_message(embed=discord.Embed(title="Connect MC Account", description="**There was an Error!**\nYour Discord account is already connected.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
-        cursor.execute(f"SELECT * FROM connection WHERE mc_username = '{username}';") # Get the mc user from the database
-        mc_result = cursor.fetchone()
+        self.cur.execute(f"SELECT * FROM connection WHERE mc_username = '{username}';") # Get the mc user from the database
+        mc_result = self.cur.fetchone()
         if mc_result:   # If the mc user is in the database
             await msg.edit_original_message(embed=discord.Embed(title="Connect MC Account", description="**There was an Error!**\nYour Minecraft account is already connected.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
@@ -93,9 +94,9 @@ class MC(commands.Cog):
             await msg.edit_original_message(embed=discord.Embed(title="Connect MC Account", description=f"**There was an error!**\nCouldn't Connect to the Database.\n`{err}`", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             log.error("Error Connecting to the AuthMe Database. Are the credentials in config.ini correct? Error: " + str(err))
             return
-        cur = mydb.cursor()
-        cur.execute(f"SELECT password FROM authme WHERE realname = '{username}';")  # Get the Hashed Password from the Authme database
-        result = cur.fetchone()
+        c = mydb.cursor()
+        c.execute(f"SELECT password FROM authme WHERE realname = '{username}';")  # Get the Hashed Password from the Authme database
+        result = c.fetchone()
         if result is None:   # If the user doesn't exist in the Authme database
             await msg.edit_original_message(embed=discord.Embed(title="Connect MC Account", description=f"**There was an error!**\nThe username `{username}` does not exist in the database. Have you registered?", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
@@ -107,15 +108,9 @@ class MC(commands.Cog):
         if hashed_pw != db_password:    # If the password is incorrect
             await msg.edit_original_message(embed=discord.Embed(title="Connect MC Account", description="*Incorrect Password!*", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
-        try:
-            con = sqlite3.connect('./data/data.db')
-        except Exception as err:
-            print("Error: Could not connect to data.db." + str(err))
-            return
-        c = con.cursor()
-        c.execute(f"INSERT INTO connection (disc_id, mc_username, mc_pw) VALUES ('{ctx.author.id}', '{username}', '{db_password}');")     # Insert the user into the database
-        con.commit()
-        con.close()
+
+        self.cur.execute(f"INSERT INTO connection (disc_id, mc_username, mc_pw) VALUES ('{ctx.author.id}', '{username}', '{db_password}');")     # Insert the user into the database
+        self.con.commit()
         con_embed = discord.Embed(title="Connect MC Account", description=f"**Success!**\nYour Minecraft account has been connected to your Discord account.", color=embed_color)
         con_embed.set_footer(text=embed_footer)
         con_embed.set_author(name=embed_header, icon_url=embed_icon)
@@ -139,15 +134,8 @@ class MC(commands.Cog):
         if con is None:
             await ctx.respond(embed=discord.Embed(title="Disconnect MC Account", description="**There was an Error!**\nThere is no Minecraft Account connected to your Discord.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), ephemeral=True)
             return
-        try:
-            con = sqlite3.connect('./data/data.db')
-        except Exception as err:
-            print("Error: Could not connect to data.db." + str(err))
-            return
-        c = con.cursor()
-        c.execute(f"DELETE FROM connection WHERE disc_id = '{ctx.author.id}';")
-        con.commit()
-        con.close()
+        self.cur.execute(f"DELETE FROM connection WHERE disc_id = '{ctx.author.id}';")
+        self.con.commit()
         discon_embed = discord.Embed(title="Disconnect MC Account", description=f"**Success!**\nYour Minecraft account has been disconnected from your Discord account.", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
         discon_embed.set_footer(text=embed_footer)
         discon_embed.set_author(name=embed_header, icon_url=embed_icon)

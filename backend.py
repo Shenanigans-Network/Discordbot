@@ -178,7 +178,9 @@ async def ip_embed(ctx, isslash: bool = False):
     if isslash:
         await ctx.respond(embed=ipembed)
     else:
-        await ctx.reply(embed=ipembed)
+        msg = await ctx.reply(embed=ipembed)
+        await msg.edit(embed=ipembed, view=DeleteButton(msg))
+
     await logger("i", f'Sent IP Embed to message of `{ctx.author.name}#{ctx.author.discriminator}`', client)
 
 
@@ -192,7 +194,8 @@ async def version_embed(ctx, isslash: bool = False):
     if isslash:
         await ctx.respond(embed=vembed)
     else:
-        await ctx.reply(embed=vembed)
+        msg = await ctx.reply(embed=vembed)
+        await msg.edit(embed=vembed, view=DeleteButton(msg))
     await logger("i", f'Sent Version Embed to message of `{ctx.author.name}#{ctx.author.discriminator}`', client)
 
 
@@ -248,7 +251,7 @@ async def serverstatus(ctx, server: str, isslash: bool = True):
     if isslash:
         await msg.edit_original_message(embed=server_embed)
     else:
-        await msg.edit(embed=server_embed)
+        await msg.edit(embed=server_embed, view=DeleteButton(msg))
     await logger("i",f'Server Status : Sent Server `{server.capitalize()}` embed to message of `{ctx.author.name}#{ctx.author.discriminator}`', client)
 
 
@@ -446,3 +449,13 @@ async def checkperm(ctx, level, isslash: bool=True) -> bool:
         return True
     else:
         return False
+
+
+class DeleteButton(discord.ui.View):
+    def __init__(self, msg):
+        super().__init__()
+        self.msg = msg
+
+    @discord.ui.button(label="Delete", style=discord.ButtonStyle.red)
+    async def button_callback(self, button, interaction): # I have no idea why there are 2 unused variables, removing them breaks the code
+        await self.msg.delete()

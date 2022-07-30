@@ -34,6 +34,13 @@ class Fun(commands.Cog):
         self.embed_log = embed_log
         self.suggestion_channel_id = suggestion_channel
 
+        try:
+            self.con = sqlite3.connect('./data/data.db')
+        except Exception as e:
+            log.critical(f"[FUN]: Error while connecting to database. Error: {str(e)}")
+            exit(2)
+        self.cur = self.con.cursor()
+
     reminder = SlashCommandGroup("reminder", "Reminder related commands.")
 
     @commands.Cog.listener()
@@ -219,22 +226,15 @@ class Fun(commands.Cog):
         if not (0 < int(day) < 32 and 0 < int(month) < 13):
             await ctx.respond("Invalid Date. Please use DD/MM format.", ephemeral=True)
             return
-        try:
-            con = sqlite3.connect('./data/data.db')
-        except Exception as err:
-            log.error("Error: Could not connect to data.db." + str(err))
-            return
-        cur = con.cursor()
-        cur.execute(f"SELECT * FROM birthdays WHERE disc_id = {disc_id}")
-        data = cur.fetchone()
+        self.cur.execute(f"SELECT * FROM birthdays WHERE disc_id = {disc_id}")
+        data = self.cur.fetchone()
         action = "set"
         if data is None:
-            cur.execute(f"INSERT INTO birthdays VALUES ({disc_id}, {day}, {month})")
+            self.cur.execute(f"INSERT INTO birthdays VALUES ({disc_id}, {day}, {month})")
         else:
             action = "updated"
-            cur.execute(f"UPDATE birthdays SET day = {day}, month = {month} WHERE disc_id = {disc_id}")
-        con.commit()
-        con.close()
+            self.cur.execute(f"UPDATE birthdays SET day = {day}, month = {month} WHERE disc_id = {disc_id}")
+        self.con.commit()
         emb = discord.Embed(title="Birthday", color=embed_color, description=f"Successfully {action} your birthday!")
         emb.add_field(name="User", value=f"`{ctx.author.name}#{ctx.author.discriminator}`", inline=True)
         emb.add_field(name="Birthday", value=f"`{day}/{month}`", inline=True)
@@ -248,19 +248,13 @@ class Fun(commands.Cog):
     async def removebirthday(self, ctx):
         # Removes the birthday from the database
         disc_id = ctx.author.id
-        try:
-            con = sqlite3.connect('./data/data.db')
-        except Exception as err:
-            log.error("Error: Could not connect to data.db." + str(err))
-            return
-        cur = con.cursor()
-        cur.execute(f"SELECT * FROM birthdays WHERE disc_id = {disc_id}")
-        data = cur.fetchone()
+        self.cur.execute(f"SELECT * FROM birthdays WHERE disc_id = {disc_id}")
+        data = self.cur.fetchone()
         if data is None:
             await ctx.respond("You don't have a birthday set!", ephemeral=True)
             return
-        cur.execute(f"DELETE FROM birthdays WHERE disc_id = {disc_id}")
-        con.commit()
+        self.cur.execute(f"DELETE FROM birthdays WHERE disc_id = {disc_id}")
+        self.con.commit()
         await logger("f", f"Removed `{ctx.author.name}`'s birthday", self.client)
         await ctx.respond("Birthday removed!", ephemeral=True)
 
@@ -269,15 +263,8 @@ class Fun(commands.Cog):
     # Upcoming birthdays cmd
     @commands.slash_command(name="upcomingbirthdays", description="Shows all upcoming birthdays", guild_ids=[guild_id])
     async def upcomingbirthdays(self, ctx):
-        try:
-            con = sqlite3.connect('./data/data.db')
-        except Exception as err:
-            log.error("Error: Could not connect to data.db." + str(err))
-            return
-        c = con.cursor()
-        c.execute("SELECT * FROM birthdays")
-        bdays = c.fetchall()
-        con.close()
+        self.cur.execute("SELECT * FROM birthdays")
+        bdays = self.cur.fetchall()
         if not bdays:
             await ctx.respond("No birthdays set!", ephemeral=True)
             return
@@ -408,19 +395,16 @@ class Fun(commands.Cog):
             user = ctx.author
         seconds = units[unit] * quantity
         duration = int(time.time())+seconds
-        con = sqlite3.connect('./data/data.db')
-        cur = con.cursor()
         rem_id = random.randint(1000000000,9999999999)
         # Database Format => id, user_id, time, author_id, message
         #                     0    1        2      3           4
         if message: # If there is a message to send
             message = message.replace('"', '')
-            cur.execute(f'INSERT INTO reminders VALUES({rem_id}, {user.id}, {duration}, {ctx.author.id}, "{message}");')
+            self.cur.execute(f'INSERT INTO reminders VALUES({rem_id}, {user.id}, {duration}, {ctx.author.id}, "{message}");')
         else:   # If there is no message to send
-            cur.execute(f'INSERT INTO reminders VALUES({rem_id},{user.id}, {duration}, {ctx.author.id}, "");')
-        con.commit()
-        con.close()
-        r_embed = discord.Embed(title="Reminder", color=embed_color, description=f"{user.name} will be reminded in `{quantity}`{unit}.")
+            self.cur.execute(f'INSERT INTO reminders VALUES({rem_id},{user.id}, {duration}, {ctx.author.id}, "");')
+        self.con.commit()
+        r_embed = discord.Embed(title="Reminder", color=embed_color, description=f"{user.name} will be reminded in <t:{duration}:R>.")
         if message:
             r_embed.add_field(name="Message", value=f"`{message}`", inline=False)
         r_embed.add_field(name="ID", value=f"`{rem_id}`", inline=False)
@@ -434,15 +418,8 @@ class Fun(commands.Cog):
     @reminder.command(name="upcoming", description="Gets all your reminders", guild_ids=[guild_id])
     async def upcoming_reminders(self, ctx):
         if await checkperm(ctx, 0): return
-        try:
-            con = sqlite3.connect('./data/data.db')
-        except Exception as e:
-            log.error(f"Error while connecting to database. Error: {str(e)}")
-            return
-        cur = con.cursor()
-        cur.execute(f'SELECT * FROM reminders WHERE user_id = {ctx.author.id};')
-        reminders = cur.fetchall()
-        con.close()
+        self.cur.execute(f'SELECT * FROM reminders WHERE user_id = {ctx.author.id};')
+        reminders = self.cur.fetchall()
         r_embed = discord.Embed(title="Reminders", color=embed_color, description="Here are your upcoming reminders")
         r_embed.set_footer(text=embed_footer)
         r_embed.set_author(name=embed_header, icon_url=embed_icon)
@@ -464,21 +441,14 @@ class Fun(commands.Cog):
     @reminder.command(name="delete", description="Deletes your reminder(s)", guild_ids=[guild_id])
     async def delete_reminder(self, ctx, id: int):
         if await checkperm(ctx, 0): return
-        try:
-            con = sqlite3.connect('./data/data.db')
-        except Exception as e:
-            log.error(f"Error while connecting to database. Error: {str(e)}")
-            return
-        cur = con.cursor()
         # check if reminder exists
-        cur.execute(f'SELECT * FROM reminders WHERE user_id = {ctx.author.id} AND id = {id};')
-        reminder = cur.fetchone()
+        self.cur.execute(f'SELECT * FROM reminders WHERE user_id = {ctx.author.id} AND id = {id};')
+        reminder = self.cur.fetchone()
         if not reminder:
             await ctx.respond("You have no reminder with that ID.", ephemeral=True)
             return
-        cur.execute(f'DELETE FROM reminders WHERE id = {id} AND user_id = {ctx.author.id};')
-        con.commit()
-        con.close()
+        self.cur.execute(f'DELETE FROM reminders WHERE id = {id} AND user_id = {ctx.author.id};')
+        self.con.commit()
         await ctx.respond(f"I've successfully deleted reminder `{id}`", ephemeral=True)
         await logger("f", f"`{ctx.author.name}#{ctx.author.discriminator}` deleted a reminder `{id}`", self.client)
 
@@ -488,18 +458,13 @@ class Fun(commands.Cog):
     @reminder.command(name="deleteall", description="Deletes all your reminders", guild_ids=[guild_id])
     async def delete_all_reminders(self, ctx):
         if await checkperm(ctx, 0): return
-        try:
-            con = sqlite3.connect('./data/data.db')
-        except Exception as e:
-            log.error(f"Error while connecting to database. Error: {str(e)}")
-            return
-        cur = con.cursor()
-        cur.execute(f'SELECT * FROM reminders WHERE user_id = {ctx.author.id};')
-        reminders = cur.fetchall()
+        self.cur.execute(f'SELECT * FROM reminders WHERE user_id = {ctx.author.id};')
+        reminders = self.cur.fetchall()
         if reminders:
             num = len(reminders)
         else:
             await ctx.respond("You have no reminders.", ephemeral=True)
+            return
 
         class Confirm(discord.ui.View): # Confirm Button Class
             def __init__(self):
@@ -528,7 +493,7 @@ class Fun(commands.Cog):
                 self.stop()
 
         _view = Confirm()
-        await ctx.respond("Are you sure you want to delete all of your reminders?", ephemeral=True, view=_view)
+        await ctx.respond(f"You have `{num}` reminders. Are you sure you want to delete all of your reminders?", ephemeral=True, view=_view)
         await _view.wait()
         if _view.value is None:  # timeout
             await ctx.respond("Deletion Cancelled. Didn't respond in time", ephemeral=True)
@@ -537,9 +502,8 @@ class Fun(commands.Cog):
             await ctx.respond("Deletion Cancelled", ephemeral=True)
             return
 
-        cur.execute(f'DELETE FROM reminders WHERE user_id = {ctx.author.id};')
-        con.commit()
-        con.close()
+        self.cur.execute(f'DELETE FROM reminders WHERE user_id = {ctx.author.id};')
+        self.con.commit()
         await ctx.respond(f"I've successfully deleted all reminders for you", ephemeral=True)
         await logger("f", f"`{ctx.author.name}#{ctx.author.discriminator}` deleted all reminders", self.client)
 

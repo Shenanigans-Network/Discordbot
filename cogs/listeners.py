@@ -16,9 +16,8 @@ import random
 import discord, datetime, sqlite3, asyncio, time
 from discord.ext import commands, tasks
 from backend import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon, server_list, welcome_channel, embed_url, suggestion_channel, roles_synced, guild_id, member_role, general_channel  # Import bot variables
-from backend import logger, serverstatus, get_con, sendcmd, ip_embed, version_embed, log    # Import bot functions
+from backend import logger, serverstatus, get_con, sendcmd, ip_embed, version_embed, log, DeleteButton    # Import bot functions
 
-# TODO: Fix tasks
 
 class Listeners(commands.Cog):
     """Event Listeners for the Bot."""
@@ -62,7 +61,7 @@ class Listeners(commands.Cog):
         if any(word in f" {ctx.content.lower()} " for word in [" version ", " 1.8.9 ", " 1.8 ", " 1.19 "]):
                 await version_embed(ctx)
 
-        # on message containing => [on|off|down|up][server]
+        # On message containing => [on|off|down|up][server]
         if any(word in f" {ctx.content.lower()} " for word in [" up ", " down ", " on ", " off "]): # Checks if the message contains the trigger words
             server = None
             for i in server_list:
@@ -224,7 +223,7 @@ class Listeners(commands.Cog):
 
         self.cur.execute(f"SELECT * FROM giveaways")
         giveaways = self.cur.fetchall()
-        log.debug(giveaways)
+        log.debug("Upcoming Giveaways" + giveaways)
         for g in giveaways:    # For each reminder
             if round(int(g[3]), -2) <= round(int(time.time()), -2): # Round to nearest 10s place, and compare to current time
                 log.debug(f"Found an upcoming giveaway in these 100 seconds.")
@@ -235,7 +234,6 @@ class Listeners(commands.Cog):
 
 
     async def giveaway(self):
-
         self.cur.execute(f"SELECT * FROM giveaways WHERE end_time <= {int(time.time())}")
         giveaways = self.cur.fetchall()
         if giveaways:   # If there are giveaways
@@ -246,7 +244,6 @@ class Listeners(commands.Cog):
 
 
     async def get_winner(self, g):
-
         self.cur.execute(f"SELECT * FROM giveaways WHERE id={g[0]}")
         d = self.cur.fetchone()
         if d[5] == d[6]:
@@ -255,39 +252,51 @@ class Listeners(commands.Cog):
         #                     0     1       2           3           4         5          6
         channel = self.client.get_channel(int(g[2]))  # Gets the channel from the giveaway
         async for message in channel.history(limit=1):  # Gets the last message in the channel
-            if message.author.id == self.client.user.id:  # If the (giveaway)message is from the bot
-                if message.reactions:  # If the message has reactions
-                    for reaction in message.reactions:  # For each reaction
-                        if reaction.emoji == "🎉":  # If the reaction is the "🎉" emoji
-                            users = await reaction.users().flatten()  # Gets all the users that have reacted to the message
-                            if len(users) > 1:  # If there are users that have reacted to the message
-                                self.cur.execute(f"SELECT * FROM giveaways WHERE id={g[0]}")
-                                giveaway = self.cur.fetchone()
-                                if not giveaway:  # If the giveaway doesn't exist
-                                    return
-                                if True:
-                                    if str(giveaway[5]) != str(giveaway[6]):  # If the giveaway has not been selected
-                                        not_selected = True
-                                        while not_selected:   # While the selected has not redeemed
-                                            self.cur.execute(f"SELECT * FROM giveaways WHERE id={g[0]}")
-                                            giveaway = self.cur.fetchone()
-                                            if str(giveaway[5]) == str(giveaway[6]):  # If the selected has redeemed the giveaway
-                                                pass
-                                                self.cur.execute("DELETE FROM giveaways WHERE id={g[0]}")
-                                                self.con.commit()
-                                                self.con.close()
-                                                return
-                                            winner = random.choice(users)   # Picks a random user from the list of users that have reacted to the message
-                                            if winner.id != self.client.user.id:    # If the winner is not the bot
-                                                if str(winner.id) != giveaway[5]:    # If the winner is not the previous selected
-                                                    cur_time = int(time.time())
-                                                    self.cur.execute(f"UPDATE giveaways SET selected={winner.id} WHERE id={g[0]}")
-                                                    self.con.commit()
-                                                    await channel.send(f"{winner.mention} you have won the giveaway! To redeem the prize, type `/giveaway redeem {g[0]}`. Your time ends  <t:{cur_time + 7200}:R>")
-                                                    await asyncio.sleep(10)   # Sleep for 2 hours
-                                    else:
-                                        self.cur.execute(f"DELETE FROM giveaways WHERE id={g[0]}")
-                                        self.con.commit()
+
+            if message.author.id != self.client.user.id:  # If the (giveaway)message is from the bot\
+                self.cur.execute(f"DELETE FROM giveaways WHERE id={g[0]}")
+                self.con.commit()
+                return "giveaway_not_found"
+
+            if not message.reactions:  # If the message has reactions
+                self.cur.execute(f"DELETE FROM giveaways WHERE id={g[0]}")
+                self.con.commit()
+                return "no_reactions"
+
+            for reaction in message.reactions:  # For each reaction
+                if reaction.emoji == "🎉":  # If the reaction is the "🎉" emoji
+                    users = await reaction.users().flatten()  # Gets all the users that have reacted to the message
+                    if not len(users) > 1:  # If there are users that have reacted to the message
+                        return "only_one_react"
+
+                    self.cur.execute(f"SELECT * FROM giveaways WHERE id={g[0]}")
+                    giveaway = self.cur.fetchone()
+                    if not giveaway:  # If the giveaway doesn't exist
+                        return "giveaway_not_found"
+
+                    if giveaway[5] == giveaway[6]:  # If the giveaway has not been selected
+                        self.cur.execute(f"UPDATE giveaways SET selected_id={users[0].id} WHERE id={g[0]}")
+                        self.con.commit()
+                        return "giveaway_winner_already_selected"
+
+                    while True:   # While the selected has not redeemed
+                        self.cur.execute(f"SELECT * FROM giveaways WHERE id={g[0]}")
+                        giveaway = self.cur.fetchone()
+                        if giveaway[5] == giveaway[6]:  # If the selected has redeemed the giveaway
+                            self.cur.execute(f"DELETE FROM giveaways WHERE id={g[0]}")
+                            self.con.commit()
+                            return "giveaway_winner_selected"
+
+                        winner = random.choice(users)
+                        while (winner.id == self.client.user.id) and not (str(winner.id) == giveaway[5]):    # If the winner is not the bot
+                            winner = random.choice(users)
+
+                        cur_time = int(time.time())
+                        self.cur.execute(f"UPDATE giveaways SET selected={winner.id} WHERE id={g[0]}")
+                        self.con.commit()
+                        await channel.send(f"{winner.mention} you have won the giveaway! To redeem the prize, type `/giveaway redeem {g[0]}`. Your time ends  <t:{cur_time + 7200}:R>")
+                        await asyncio.sleep(7200)   # Sleep for 2 hours
+
 
     @check_reminders.before_loop
     @check_for_birthday.before_loop
