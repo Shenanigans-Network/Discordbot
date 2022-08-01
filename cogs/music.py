@@ -12,12 +12,11 @@
 #   This code is not intended to be edited but feel free to do so
 #   More info can be found on the GitHub page:
 #
-import time
 
 from discord.utils import get
 from discord.ext import commands
 from discord import SlashCommandGroup
-import discord, os, sqlite3, random, yt_dlp, re
+import discord, os, sqlite3, random, yt_dlp, re, time
 from youtube_search import YoutubeSearch
 from backend import embed_icon, embed_color, embed_footer, embed_header, embed_url, client, music_channel, guild_id  # , music_vc
 from backend import checkperm, log
@@ -117,6 +116,7 @@ class Queue:
 
 class Music(commands.Cog):
     music = SlashCommandGroup("music", "Music related commands")
+    playlist = music.create_subgroup("playlist", "Commands which interact with your playlists")
 
     def __init__(self, client):
         self.client = client
@@ -389,8 +389,13 @@ class Music(commands.Cog):
             await ctx.respond("No songs in queue")
             return
 
-        queue_list = "\n".join(f"{i + 1}. {self.queues.song_list[i][1]}" for i in range(len(self.queues.song_list)))
-        queue_list = (queue_list.replace("[", "").replace("]", "").replace("'", ""))[::-1]    # get rid of []' and reverse
+        # invert the list so the first song is at the top and then convert to a string
+        # song_list = [f"{i+1}. {song[1].replace('[', '').replace(']', '')}" for i, song in enumerate(self.queues.song_list)]
+
+        queue_list = [f"{self.queues.song_list[i][1]}" for i in range(len(self.queues.song_list))][::-1]
+        queue_list = "\n".join([f"{i + 1}. {queue_list[i]}".replace("[", "").replace("]", "").replace("'", "") for i in
+                                range(len(queue_list))])
+
 
         m_embed = discord.Embed(title="Music", color=embed_color, url=embed_url)
         m_embed.set_footer(text=embed_footer)
@@ -416,8 +421,9 @@ class Music(commands.Cog):
             await ctx.respond("No music is playing")
 
 
-    @music.command()
-    async def add_song(self, ctx, playlist: str):
+
+    @playlist.command()
+    async def add(self, ctx, playlist_name: str):
 
         self.c.execute(f"CREATE TABLE IF NOT EXISTS playlists_{ctx.author.id} (playlist TEXT, song_id TEXT, titles TEXT)")
         self.db.commit()
@@ -426,7 +432,7 @@ class Music(commands.Cog):
             await ctx.respond("No song is currently playing")
             return
 
-        self.c.execute(f'SELECT song_id FROM playlists_{ctx.author.id} WHERE song_id="{self.queues.current_song[0]}" AND playlist="{playlist}"')
+        self.c.execute(f'SELECT song_id FROM playlists_{ctx.author.id} WHERE song_id="{self.queues.current_song[0]}" AND playlist="{playlist_name}"')
         res = self.c.fetchone()
         if res is not None:
             log.debug(res)
@@ -434,28 +440,112 @@ class Music(commands.Cog):
             return
 
         # remove special characters from playlist name
-        playlist = playlist.replace(";", "").replace('"', '').replace("'", "").replace("`", "")
+        playlist_name = playlist_name.replace(";", "").replace('"', '').replace("'", "").replace("`", "")
 
 
-        self.c.execute(f'INSERT INTO playlists_{ctx.author.id} (playlist, song_id, titles) values("{playlist}", "{self.queues.current_song[0]}", "{self.queues.current_song[1][0]}")')
+        self.c.execute(f'INSERT INTO playlists_{ctx.author.id} (playlist, song_id, titles) values("{playlist_name}", "{self.queues.current_song[0]}", "{self.queues.current_song[1][0]}")')
         self.db.commit()
 
-        await ctx.respond(f"Added `{self.queues.current_song[1]}` to your `{playlist}` Playlist!")
+        await ctx.respond(f"Added `{self.queues.current_song[1]}` to your `{playlist_name}` Playlist!")
 
 
-
-    @music.command()
-    async def play_playlist(self, ctx, playlist: str):
-        self.c.execute(f"SELECT song_id FROM playlists_{ctx.author.id} WHERE playlist='{playlist}'")
+    @playlist.command()
+    async def play_playlist(self, ctx, playlist_name: str):
+        self.c.execute(f"SELECT song_id, titles FROM playlists_{ctx.author.id} WHERE playlist='{playlist_name}'")
         songs = self.c.fetchall()
 
         if not songs:
             await ctx.respond("No songs in your songs playlist! Try again.")
             return
 
-        log.debug(songs)
+        # voice = get(self.client.voice_clients, guild=ctx.guild)
+
         for song in songs:
             self.queues.add_song(song[0], song[1])
+        # self.next_song(voice)
+        await ctx.respond(f"Added {len(songs)} songs to the queue!")
+
+
+    @playlist.command()
+    async def songs(self, ctx, playlist_name: str):
+        self.c.execute(f"SELECT song_id, titles FROM playlists_{ctx.author.id} WHERE playlist='{playlist_name}'")
+        songs = self.c.fetchall()
+
+        if not songs:
+            await ctx.respond("No songs in your songs playlist! Try again.")
+            return
+
+
+        song_list = [f"{i+1}. {song[1]}" for i, song in enumerate(songs)]
+        song_list = "\n".join(song_list)
+
+        m_embed = discord.Embed(title="Music", color=embed_color, url=embed_url)
+        m_embed.set_footer(text=embed_footer)
+        m_embed.set_author(name=embed_header, icon_url=embed_icon)
+        m_embed.add_field(name="Songs", value=song_list, inline=False)
+        await ctx.respond(embed=m_embed)
+
+
+    @playlist.command()
+    async def removesong(self, ctx, playlist_name: str):
+        self.c.execute(f'DELETE FROM playlists_{ctx.author.id} WHERE song_id="{self.queues.current_song[0]}" AND playlist="{playlist_name}"')
+        self.db.commit()
+
+        await ctx.respond(f"`{self.queues.current_song[1][0]}` has been deleted from `{playlist_name}`!")
+
+
+
+    @playlist.command()
+    async def deleteall(self, ctx, playlist_name: str):
+        self.c.execute(f"SELECT titles FROM playlists_{ctx.author.id} WHERE playlist='{playlist_name}'")
+        songs = len(self.c.fetchall())
+
+        if songs == 0:
+            await ctx.respond("There are no songs in this playlist or it doesn't exist!")
+            return
+
+        class Confirm(discord.ui.View): # Confirm Button Class
+            def __init__(self):
+                super().__init__()
+                self.value = None
+                self.author = ctx.author
+
+            @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green)
+            async def confirm_callback(self, button: discord.ui.Button, interaction: discord.Interaction):
+                if not interaction.user.id == self.author.id:
+                    return await interaction.response.send_message("This button is not for you", ephemeral=True)
+                self.value = True
+                for child in self.children: # Disable all buttons
+                    child.disabled = True
+                await interaction.response.edit_message(view=self)
+                self.stop()
+
+            @discord.ui.button(label="Cancel", style=discord.ButtonStyle.grey)
+            async def cancel_callback(self, button: discord.ui.Button, interaction: discord.Interaction):
+                if not interaction.user.id == self.author.id:
+                    return await interaction.response.send_message("This button is not for you", ephemeral=True)
+                self.value = False
+                for child in self.children:
+                    child.disabled = True
+                await interaction.response.edit_message(view=self)
+                self.stop()
+
+        _view = Confirm()
+        msg = await ctx.respond(f"You have {songs} in the {playlist_name} playlist! Are you sure you want to delete all songs from this playlist?", view=_view)
+
+        await _view.wait()
+        if _view.value is None:  # timeout
+            await ctx.respond("Cancelled. Didn't respond in time", ephemeral=True)
+            return
+        if not _view.value:    # cancel
+            await ctx.respond("Cancelled.", ephemeral=True)
+            return
+
+        self.c.execute(f'DELETE FROM playlists_{ctx.author.id} WHERE playlist="{playlist_name}"')
+        self.db.commit()
+
+        await msg.edit_original_message(f"The `{playlist_name}` was successfully deleted!")
+
 
 def setup(client):
     client.add_cog(Music(client))
