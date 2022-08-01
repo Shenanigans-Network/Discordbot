@@ -471,20 +471,28 @@ class Admin(commands.Cog):
 
 
     @admin.command(name="execsql", description="ADMIN: Execute SQL", guild_ids=[guild_id])
-    async def exec_sql(self, ctx, sql: str):
+    async def exec_sql(self, ctx, database:
+    discord.Option(choices=[
+                            discord.OptionChoice("data.db", value="./data/data.db"),
+                            discord.OptionChoice("music.db", value="./data/music.db")
+                            ]),        sql: str):
         if await checkperm(ctx, 5): return
+        db = sqlite3.connect(database)
+        _cursor = db.cursor()
         try:
-            self.cur.execute(sql)
+            _cursor.execute(sql)
         except Exception as e:
             await ctx.respond(embed=discord.Embed(title="Execute SQL", description=f"**Error!**\n{e}", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), ephemeral=True)
             return
-        res = self.cur.fetchall()
+        res = _cursor.fetchall()
         if len(res) == 0:
             embed = discord.Embed(title="Execute SQL", description="**Success!**\nNo results found.", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
         else:
             embed = discord.Embed(title="Execute SQL", description="**Success!**\nResults found.", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
             for i in res:
                 embed.add_field(name=str(i[0]), value=str(i[1]), inline=False)
+        db.commit()
+        db.close()
         await ctx.respond(embed=embed, ephemeral=True)
         # await ctx.respond(embed=discord.Embed(title="Execute SQL", description=f"**Success!**\nThe SQL has been executed.", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), ephemeral=True)
 

@@ -67,6 +67,8 @@ try:
     embed_log: int = config.getint('discord', 'embed_log')
     member_role: int = config.getint('discord', 'member_role_id')
     general_channel: int = config.getint('discord', 'general_channel')
+    music_channel: int = config.getint('discord', 'music_channel')
+    music_vc: int = config.getint('discord', 'music_vc')
 
     embed_footer: str = config.get('discord', 'embed_footer').replace("$bot_version", bot_version)
     embed_header: str = config.get('discord', 'embed_header').replace("$bot_version", bot_version)
