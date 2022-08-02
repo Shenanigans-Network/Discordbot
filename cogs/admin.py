@@ -16,7 +16,7 @@ import random
 
 import discord, sqlite3, time
 from discord.ext import commands
-from backend import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon, guild_id, serv_ips, embed_log, server_list, embed_url
+from backend import prefix, embed_header, embed_footer, embed_color, embed_icon, guild_id, serv_ips, embed_log, server_list, embed_url
 from backend import checkperm, logger, serverpower, sendcmd, get_permlvl, resetcount, status, mc_exists, log
 from discord.commands import SlashCommandGroup
 from mcstatus import JavaServer
@@ -30,14 +30,7 @@ class Admin(commands.Cog):
     """Commands meant for server admins only."""
     def __init__(self, client):
         self.client = client
-        self.embed_color = embed_color
-        self.embed_icon = embed_icon
-        self.embed_header = embed_header
-        self.embed_footer = embed_footer
-        self.prefix = prefix
-        self.bot_version = bot_version
-        self.embed_log = embed_log
-        self.choices = choices
+
 
         try:
             self.con = sqlite3.connect('./data/data.db')
@@ -56,8 +49,8 @@ class Admin(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        global embed_log
-        embed_log = self.client.get_channel(embed_log)
+        global _embed_log
+        _embed_log = self.client.get_channel(embed_log)
         log.info("Cog : Admin.py Loaded")
 
 
@@ -76,7 +69,7 @@ class Admin(commands.Cog):
             p = await sendcmd(server.lower(), command)
         except Exception as e:  # If the command fails, return
             await ctx.respond(f"There was a error while sending the command to the given server\nError - {e}", ephemeral=True)
-            log.error(f"Unable to send command to server. Error: {e}")
+            log.error(f"[ADMIN]: Unable to send command to server. Error: {e}")
             return
         if not p:   # If the sending the command was not successful, return
             await ctx.respond(f"There was a error while sending the command to the given server", ephemeral=True)
@@ -86,7 +79,7 @@ class Admin(commands.Cog):
         embed.add_field(name="Operation Successful!",value=f"Successfully Sent the Command. Issued by {ctx.author.name}#{ctx.author.discriminator} \n \n**Server** - `{server}` \n **Command** - `{command}`",inline=False)
         embed.set_footer(text=embed_footer)
         await ctx.respond(embed=embed, ephemeral=True)
-        await embed_log.send(embed=embed)
+        await _embed_log.send(embed=embed)
         await logger("a", f'`{ctx.author.name}#{ctx.author.discriminator}` sent a command to `{server}`\nCommand `{command}`', self.client)
 
 
@@ -112,7 +105,7 @@ class Admin(commands.Cog):
             p = await sendcmd("survival", f"eco take {user} {amount}")
         except Exception as e:  # If the command fails, return
             await ctx.respond(f"There was a error while sending the command\nError - {e}", ephemeral=True)
-            log.error(f"Unable to send command to server. Error: {e}")
+            log.error(f"[ADMIN]: Unable to send command to server. Error: {e}")
             return
         if not p: return    # If the sending the command was not successful, return
         embed = discord.Embed(title="Admin - Take Money", url=embed_url, color=embed_color)
@@ -141,7 +134,7 @@ class Admin(commands.Cog):
             p = await sendcmd("survival", f"eco give {user} {amount}")
         except Exception as e:  # If the command fails, return
             await ctx.respond(f"There was a error in sending the command\nError - {e}", ephemeral=True)
-            log.error(f"Unable to send command to server. Error: {e}")
+            log.error(f"[ADMIN]: Unable to send command to server. Error: {e}")
             return
         if not p: return    # If the sending the command was not successful, return
         embed = discord.Embed(title="Admin - Take Money", url=embed_url, color=embed_color)
@@ -178,7 +171,7 @@ class Admin(commands.Cog):
             p = await sendcmd("auth", cmd)
         except Exception as e:  # If the command fails, return
             await ctx.respond("There was a error in sending the command", ephemeral=True)
-            log.error(f"Error while sending command to Auth Server. Error - {str(e)}")
+            log.error(f"[ADMIN]: Error while sending command to Auth Server. Error - {str(e)}")
             return
         if not p: return    # If the sending the command was not successful, return
         embed = discord.Embed(title="Admin - Change Password", url=embed_url, color=embed_color)
@@ -186,7 +179,7 @@ class Admin(commands.Cog):
         embed.add_field(name="Operation Successful!", value=f"Successfully Changed the Password. Issued by {ctx.author.name}#{ctx.author.discriminator} \n \n**Player** - `{user}` \n **Password** - ||`{new_password}`||", inline=False)
         embed.set_footer(text=embed_footer)
         await ctx.respond(embed=embed, ephemeral=True)
-        await embed_log.send(embed=embed)  # Sending it to the Logs channel
+        await _embed_log.send(embed=embed)  # Sending it to the Logs channel
         await logger("a", f'`{ctx.author.name}#{ctx.author.discriminator}` changed the password of `{user}`', self.client)
 
 
@@ -208,7 +201,7 @@ class Admin(commands.Cog):
             p = await sendcmd("auth", f"authme unreg {user}")
         except Exception as e:  # If the command fails, return
             await ctx.respond(f"There was a error in sending the command\nError - {e}", ephemeral=True)
-            log.error(f"Error while sending command to Auth Server. Error - {str(e)}")
+            log.error(f"[ADMIN]: Error while sending command to Auth Server. Error - {str(e)}")
             return
         if not p:   # If the sending the command was not successful, return
             return
@@ -217,7 +210,7 @@ class Admin(commands.Cog):
         embed.add_field(name="Operation Successful!", value=f"Successfully Unregistered User. Issued by {ctx.author.name}#{ctx.author.discriminator} \n \n**Player** - `{user}`", inline=False)
         embed.set_footer(text=embed_footer)
         await ctx.respond(embed=embed, ephemeral=True)
-        await embed_log.send(embed=embed)  # Sending it to the Logs channel
+        await _embed_log.send(embed=embed)  # Sending it to the Logs channel
         await logger("a", f'`{ctx.author.name}#{ctx.author.discriminator}` Unregistered `{user}`', self.client)
 
 
@@ -299,7 +292,7 @@ class Admin(commands.Cog):
                     player_count = JavaServer.lookup(serv_ips[server]).query().players.online  # Gets player count from API
 
                 except Exception as e:  # If it fails, print the error
-                    log.warning(f"Error while getting player count for {server} in Admin Power command. Error: {e}")
+                    log.warning(f"[ADMIN]: Error while getting player count for {server} in Admin Power command. Error: {e}")
                     player_count = 0
 
                 if not player_count == 0:    # If the player count is not 0
@@ -321,7 +314,7 @@ class Admin(commands.Cog):
             res = await serverpower(server, power)
         except Exception as e:
             await msg.edit_original_message(embed=discord.Embed(title=f"Power | {server.capitalize()}",description=f"**There was an error!**\nError - {e}",color=embed_color))
-            log.error(f"Error while trying to change server power. Error: {e}")
+            log.error(f"[ADMIN]: Error while trying to change server power. Error: {e}")
             return
 
         if not res:
@@ -494,7 +487,6 @@ class Admin(commands.Cog):
         db.commit()
         db.close()
         await ctx.respond(embed=embed, ephemeral=True)
-        # await ctx.respond(embed=discord.Embed(title="Execute SQL", description=f"**Success!**\nThe SQL has been executed.", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), ephemeral=True)
 
 
 

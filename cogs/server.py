@@ -16,7 +16,7 @@
 import discord
 from mcstatus import JavaServer
 from discord.ext import commands
-from backend import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon, serv_ips, guild_id, server_list       # Import bot variables
+from backend import embed_header, embed_footer, embed_color, embed_icon, serv_ips, guild_id, server_list       # Import bot variables
 from backend import checkperm, logger, status, serverstatus, log   # Import bot functions
 
 choices = []
@@ -27,13 +27,7 @@ class Server(commands.Cog):
     """Commands that provide information about the Server meant for general users"""
     def __init__(self, client):
         self.client = client
-        self.embed_color = embed_color
-        self.embed_icon = embed_icon
-        self.embed_header = embed_header
-        self.embed_footer = embed_footer
-        self.prefix = prefix
-        self.bot_version = bot_version
-        self.serv_ips = serv_ips
+
 
 
     @commands.Cog.listener()
@@ -65,7 +59,7 @@ class Server(commands.Cog):
             server_info = await status(server.lower())  # Gets server info from Pterodactyl API
         except Exception as e:
             await msg.edit_original_message(embed=discord.Embed(title=f"Server Status | {server.capitalize()}",description=f"**Error**: Couldn't get Status\n{e}",color=embed_color,url="https://moonball.io").set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
-            log.warning(f"Error while trying to get Server Status. Error: {str(e)}")
+            log.warning(f"[Server] Error while trying to get Server Status. Error: {str(e)}")
             return
         server_status = server_info["state"]
         if server_status != "running":

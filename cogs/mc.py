@@ -15,7 +15,7 @@
 
 import discord, hashlib, mysql.connector, sqlite3
 from discord.ext import commands
-from backend import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon, guild_id, db_host, db_name, db_user, db_pw    # Import bot variables
+from backend import prefix, embed_header, embed_footer, embed_color, embed_icon, guild_id, db_host, db_name, db_user, db_pw    # Import bot variables
 from backend import logger, checkperm, get_con, sendcmd, bad_char, log
 from discord.commands import SlashCommandGroup
 
@@ -27,14 +27,14 @@ class Sha256:
 
     def realHash(self, pw: str) -> str:
         result = hashlib.sha256(pw.encode('utf-8')).hexdigest()
-        log.debug(result)
+        log.debug(f"[MC]: Sha256 realhash: {result}")
         return result
 
 
     def hash(self, password: str) -> str:
         salt = self.usersalt  # Get salt from database
         result = str(str('$SHA$' + str(salt)) + '$') + self.realHash((self.realHash(password) + str(salt)))
-        log.debug(result)
+        log.debug(f"[MC]: Sha256 hash: {result}")
         return result
 
 mc = discord.SlashCommandGroup("mc", "Minecraft Related Commands")
@@ -43,13 +43,7 @@ class MC(commands.Cog):
     """Commands interacting with the Minecraft server, meant for the general user."""
     def __init__(self, client):
         self.client = client
-        self.embed_color = embed_color
-        self.embed_icon = embed_icon
-        self.embed_header = embed_header
-        self.embed_footer = embed_footer
-        self.prefix = prefix
-        self.bot_version = bot_version
-        self.mc = mc
+
 
         try:
             self.con = sqlite3.connect('./data/data.db')
@@ -92,7 +86,7 @@ class MC(commands.Cog):
             )
         except mysql.connector.Error as err:    # If there is an error
             await msg.edit_original_message(embed=discord.Embed(title="Connect MC Account", description=f"**There was an error!**\nCouldn't Connect to the Database.\n`{err}`", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
-            log.error("Error Connecting to the AuthMe Database. Are the credentials in config.ini correct? Error: " + str(err))
+            log.error("[MC]: Error Connecting to the AuthMe Database. Are the credentials in config.ini correct? Error: " + str(err))
             return
         c = mydb.cursor()
         c.execute(f"SELECT password FROM authme WHERE realname = '{username}';")  # Get the Hashed Password from the Authme database
@@ -122,7 +116,7 @@ class MC(commands.Cog):
         try:
             await ctx.author.add_roles(role)
         except Exception as e:
-            log.warning(f"Error adding the Connected role to {ctx.author.id}. Error: {e}")
+            log.warning(f"[MC]: Error adding the Connected role to {ctx.author.id}. Error: {e}")
         await logger("m", f"`{ctx.author.name}#{ctx.author.discriminator}` connected their Minecraft account, `{username}` to their Discord account.", self.client)
 
 
@@ -146,7 +140,7 @@ class MC(commands.Cog):
         try:    # remove the "connected" role
             await ctx.author.remove_roles(role)
         except Exception as e:
-            log.warning(f"Error removing the Connected role from {ctx.author.id}. Error: {e}")
+            log.warning(f"[MC]: Error removing the Connected role from {ctx.author.id}. Error: {e}")
         await logger("m", f"`{ctx.author.name}#{ctx.author.discriminator}` disconnected their Minecraft account, `{con}` from their Discord account.", self.client)
 
 
@@ -174,7 +168,7 @@ class MC(commands.Cog):
             cmdout = await sendcmd("auth", cmd)
         except Exception as e:
             await emb.edit_original_message(embed=discord.Embed(title="Change Password Command", description="**There was an Error!**\nThere was an error while trying to change your password.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
-            log.error(f"Error sending command to a server, while changing password. Error: {e}")
+            log.error(f"[MC]: Error sending command to a server, while changing password. Error: {e}")
             return
         if cmdout != "done": return
         pw_embed = discord.Embed(title="Change Password Command", description=f"**Success!**\nYour password has been changed.", color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon)
@@ -205,7 +199,7 @@ class MC(commands.Cog):
             await sendcmd("survival", f"mail {user2} Greetings!, {user1} has paid you ${amount}")
         except Exception as e:
             await emb.edit_original_message(embed=discord.Embed(title="Pay Command", description="**There was an Error!**\nThere was an error while sending the command to the server. Please contact the mods.", color=discord.colour.Color.red()).set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
-            log.error(f"Error sending command to a server, on the pay command. Error: {e}")
+            log.error(f"[MC]: Error sending command to a server, on the pay command. Error: {e}")
             return
         embd = discord.Embed(title="Pay Command", description=f"The operation was successful.", color=embed_color)
         embd.add_field(name="Payer", value=f"`{user1}`")

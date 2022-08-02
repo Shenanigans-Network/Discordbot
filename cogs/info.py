@@ -15,7 +15,7 @@
 
 import discord
 from discord.ext import commands
-from backend import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon, guild_id, embed_url     # Import bot variables
+from backend import embed_header, embed_footer, embed_color, bot_version, embed_icon, guild_id, embed_url     # Import bot variables
 from backend import checkperm, logger, ip_embed, version_embed, log # Import functions
 
 
@@ -23,12 +23,6 @@ class Info(commands.Cog):
     """Commands which provide information relating to Servers and our Network"""
     def __init__(self, client):
         self.client = client
-        self.embed_color = embed_color
-        self.embed_icon = embed_icon
-        self.embed_header = embed_header
-        self.embed_footer = embed_footer
-        self.prefix = prefix
-        self.bot_version = bot_version
 
 
     @commands.Cog.listener()

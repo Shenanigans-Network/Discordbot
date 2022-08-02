@@ -15,7 +15,7 @@
 
 import discord, random, sqlite3, aiohttp, time, re, datetime
 from discord.ext import commands
-from backend import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon, guild_id, embed_log, suggestion_channel, tick_emoji, cross_emoji, one_emoji, two_emoji, three_emoji, four_emoji   # Import bot variables
+from backend import embed_header, embed_footer, embed_color, embed_icon, guild_id, embed_log, suggestion_channel, tick_emoji, cross_emoji, one_emoji, two_emoji, three_emoji, four_emoji   # Import bot variables
 from backend import checkperm, logger, countadd, log                                     # Import functions
 from discord.commands import SlashCommandGroup
 
@@ -25,14 +25,6 @@ class Fun(commands.Cog):
     """Fun and Interactive Commands that enriches the server experience"""
     def __init__(self, client):
         self.client = client
-        self.embed_color = embed_color
-        self.embed_icon = embed_icon
-        self.embed_header = embed_header
-        self.embed_footer = embed_footer
-        self.prefix = prefix
-        self.bot_version = bot_version
-        self.embed_log = embed_log
-        self.suggestion_channel_id = suggestion_channel
 
         try:
             self.con = sqlite3.connect('./data/data.db')
@@ -45,9 +37,9 @@ class Fun(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        global embed_log, suggestion_channel
-        embed_log = self.client.get_channel(embed_log)
-        suggestion_channel = self.client.get_channel(suggestion_channel)
+        global _embed_log, _suggestion_channel
+        _embed_log = self.client.get_channel(embed_log)
+        _suggestion_channel = self.client.get_channel(suggestion_channel)
         log.info("Cog : Fun.py Loaded")
 
 
@@ -210,12 +202,12 @@ class Fun(commands.Cog):
         if image_url:
             s_embed.set_image(url=image_url)  # Setting image
         s_embed.set_footer(text=embed_footer)
-        s = await suggestion_channel.send(embed=s_embed)
+        s = await _suggestion_channel.send(embed=s_embed)
         # Adding reactions
         await s.add_reaction(tick_emoji)  # Adding tick reaction
         await s.add_reaction(cross_emoji)  # Adding cross reaction
-        await embed_log.send(embed=s_embed)  # Sending it to the Logs channel
-        await ctx.respond(f"Your Suggestion was sent! Check <#{suggestion_channel.id}> to see how its doing!", ephemeral=True)
+        await _embed_log.send(embed=s_embed)  # Sending it to the Logs channel
+        await ctx.respond(f"Your Suggestion was sent! Check <#{suggestion_channel}> to see how its doing!", ephemeral=True)
         log.info(f"Sent `{ctx.author.name}`'s suggestion to the suggestion channel!")
 
 
@@ -323,7 +315,7 @@ class Fun(commands.Cog):
                     data = await resp.json()
         except Exception as e:
             await ctx.respond(f"There was an error! Error: {str(e)}", ephemeral=True)
-            log.error(f"Error while getting joke from API. Error: {str(e)}")
+            log.error(f"[FUN]: Error while getting joke from API. Error: {str(e)}")
             return
 
         if data["type"] == "single":
