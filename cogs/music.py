@@ -144,15 +144,15 @@ class Music(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, ctx):
-        if ctx.author.id == self.client.user.id: return
         if ctx.channel.id != music_channel: return
+        if ctx.author.id == self.client.user.id:
+            await ctx.delete()
+            return
 
         content = ctx.content
         await ctx.delete()
 
-        if not re.search(
-                r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?([^&=%\n]*)',
-                content):
+        if not re.search(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?([^&=%\n]*)',content):
             results = YoutubeSearch(content, max_results=1).to_dict()
             log.debug(results[0]['id'])
             content = f"https://www.youtube.com/watch?v={results[0]['id']}"
@@ -421,6 +421,9 @@ class Music(commands.Cog):
             await ctx.respond("No music is playing")
 
 
+    #
+    #   === Playlist Commands ===
+    #
 
     @playlist.command()
     async def add(self, ctx, playlist_name: str):
@@ -432,6 +435,8 @@ class Music(commands.Cog):
             await ctx.respond("No song is currently playing")
             return
 
+        playlist_name = playlist_name.replace(";", "").replace('"', '').replace("'", "").replace("`", "")
+
         self.c.execute(f'SELECT song_id FROM playlists_{ctx.author.id} WHERE song_id="{self.queues.current_song[0]}" AND playlist="{playlist_name}"')
         res = self.c.fetchone()
         if res is not None:
@@ -439,14 +444,16 @@ class Music(commands.Cog):
             await ctx.respond("Already added!")
             return
 
-        # remove special characters from playlist name
-        playlist_name = playlist_name.replace(";", "").replace('"', '').replace("'", "").replace("`", "")
-
-
         self.c.execute(f'INSERT INTO playlists_{ctx.author.id} (playlist, song_id, titles) values("{playlist_name}", "{self.queues.current_song[0]}", "{self.queues.current_song[1][0]}")')
         self.db.commit()
 
-        await ctx.respond(f"Added `{self.queues.current_song[1]}` to your `{playlist_name}` Playlist!")
+        p_embed = discord.Embed(title="Music | Playlist", color=embed_color, url=embed_url, description=f"Adding to the playlist was successful!")
+        p_embed.add_field(name="Song", value=f"{self.queues.current_song[1][0]}", inline=False)
+        p_embed.add_field(name="Playlist", value=f"`{playlist_name}`", inline=False)
+        p_embed.set_footer(text=embed_footer)
+        p_embed.set_author(name=embed_header, icon_url=embed_icon)
+        await ctx.respond(embed=p_embed)
+
 
 
     @playlist.command()
@@ -463,11 +470,17 @@ class Music(commands.Cog):
         for song in songs:
             self.queues.add_song(song[0], song[1])
         # self.next_song(voice)
-        await ctx.respond(f"Added {len(songs)} songs to the queue!")
+        p_embed = discord.Embed(title="Music | Playlist", color=embed_color, url=embed_url,
+                                description=f"Successfully added all songs from the playlist to the queue!")
+        p_embed.add_field(name="Playlist", value=f"`{playlist_name}`", inline=False)
+        p_embed.add_field(name="Number of Songs", value=f"`{len(songs)}`", inline=False)
+        p_embed.set_footer(text=embed_footer)
+        p_embed.set_author(name=embed_header, icon_url=embed_icon)
+        await ctx.respond(embed=p_embed)
 
 
-    @playlist.command()
-    async def songs(self, ctx, playlist_name: str):
+    @playlist.command(name="list")
+    async def _list(self, ctx, playlist_name: str):
         self.c.execute(f"SELECT song_id, titles FROM playlists_{ctx.author.id} WHERE playlist='{playlist_name}'")
         songs = self.c.fetchall()
 
@@ -479,19 +492,23 @@ class Music(commands.Cog):
         song_list = [f"{i+1}. {song[1]}" for i, song in enumerate(songs)]
         song_list = "\n".join(song_list)
 
-        m_embed = discord.Embed(title="Music", color=embed_color, url=embed_url)
+        m_embed = discord.Embed(title="Music | Playlist", color=embed_color, url=embed_url)
         m_embed.set_footer(text=embed_footer)
         m_embed.set_author(name=embed_header, icon_url=embed_icon)
         m_embed.add_field(name="Songs", value=song_list, inline=False)
         await ctx.respond(embed=m_embed)
-
 
     @playlist.command()
     async def removesong(self, ctx, playlist_name: str):
         self.c.execute(f'DELETE FROM playlists_{ctx.author.id} WHERE song_id="{self.queues.current_song[0]}" AND playlist="{playlist_name}"')
         self.db.commit()
 
-        await ctx.respond(f"`{self.queues.current_song[1][0]}` has been deleted from `{playlist_name}`!")
+        p_embed = discord.Embed(title="Music | Playlist", color=embed_color, url=embed_url, description=f"Deleting the song from the playlist was successful!")
+        p_embed.add_field(name="Song", value=f"{self.queues.current_song[1][0]}", inline=False)
+        p_embed.add_field(name="Playlist", value=f"`{playlist_name}`", inline=False)
+        p_embed.set_footer(text=embed_footer)
+        p_embed.set_author(name=embed_header, icon_url=embed_icon)
+        await ctx.respond(embed=p_embed)
 
 
 
@@ -545,6 +562,12 @@ class Music(commands.Cog):
         self.db.commit()
 
         await msg.edit_original_message(f"The `{playlist_name}` was successfully deleted!")
+        p_embed = discord.Embed(title="Music | Playlist", color=embed_color, url=embed_url, description=f"Deleting the playlist was successful!")
+        p_embed.add_field(name="Playlist", value=f"`{playlist_name}`", inline=False)
+        p_embed.add_field(name="Number of Songs", value=f"`{songs}`", inline=False)
+        p_embed.set_footer(text=embed_footer)
+        p_embed.set_author(name=embed_header, icon_url=embed_icon)
+        await ctx.respond(embed=p_embed)
 
 
 def setup(client):
