@@ -89,13 +89,13 @@ try:
     three_emoji: str = config.get('emoji', 'three_emoji')
     four_emoji: str = config.get('emoji', 'four_emoji')
 
-    music_save: str = config.get('music', 'music_save')
-    music_loop: str = config.get('music', 'music_loop')
-    music_pause: str = config.get('music', 'music_pause')
-    music_stop: str = config.get('music', 'music_stop')
-    music_skip: str = config.get('music', 'music_skip')
-    music_vol_down: str = config.get('music', 'music_vol_down')
-    music_vol_up: str = config.get('music', 'music_vol_up')
+    music_save: str = config.get('emoji', 'music_save')
+    music_loop: str = config.get('emoji', 'music_loop')
+    music_pause: str = config.get('emoji', 'music_pause')
+    music_stop: str = config.get('emoji', 'music_stop')
+    music_skip: str = config.get('emoji', 'music_skip')
+    music_vol_down: str = config.get('emoji', 'music_vol_down')
+    music_vol_up: str = config.get('emoji', 'music_vol_up')
 
 
 except Exception as err:

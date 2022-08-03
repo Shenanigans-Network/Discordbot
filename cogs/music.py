@@ -21,81 +21,21 @@ from youtube_search import YoutubeSearch
 from backend import embed_icon, embed_color, embed_footer, embed_header, embed_url, client, music_channel, guild_id  # , music_vc
 from backend import checkperm, log
 
-
-class ReplayButton(discord.ui.View):
-    def __init__(self, ctx, video_url, msg):
-        super().__init__(timeout=None)
-        self.ctx = ctx
-        self.url = video_url
-        self.client = client
-        self.message = msg
-
-    async def on_timeout(self):
-        for child in self.children:
-            child.disabled = True
-        await self.message.edit(view=self)
-
-    @discord.ui.button(label="Replay", style=discord.ButtonStyle.gray, custom_id="replay")
-    async def button_callback(self, button, interaction):  # Don't remove the unused variable
-        await interaction.response.send_message("Added song to queue.", ephemeral=True)
-        await self.client.cogs.get('Music').player(self.ctx, self.url)
-
-
-class DedicatedButtons(discord.ui.View):
-    def __init__(self, voice):
-        super().__init__(timeout=None)
-        self.voice = voice
-        self.queues = Queue()
-
-    @discord.ui.button(label="▶️", style=discord.ButtonStyle.gray, custom_id="music_playpause")
-    async def play_pause_button(self, button, interaction):
-        # play pause button
-        if self.voice.is_playing():
-            self.voice.pause()
-            await interaction.response.send_message("Paused the current song.", ephemeral=True)
-        else:
-            self.voice.resume()
-            await interaction.response.send_message("Resumed the current song.", ephemeral=True)
-
-    @discord.ui.button(label="⏭️", style=discord.ButtonStyle.gray, custom_id="music_skip")
-    async def skip_button(self, button, interaction):
-        # skip button
-        await interaction.response.send_message("Skip button pressed", ephemeral=True)
-        self.voice.stop()
-
-    @discord.ui.button(label="⏹️", style=discord.ButtonStyle.red, custom_id="music_stop")
-    async def stop_button(self, button, interaction):
-        # stop button
-        if self.voice.is_playing():
-            self.voice.stop()
-            self.voice.channel.disconnect()
-        await interaction.response.send_message("Stop button pressed", ephemeral=True)
-
-    @discord.ui.button(label="🔁", style=discord.ButtonStyle.gray, custom_id="music_loop")
-    async def loop_button(self, button, interaction):
-        # loop button
-        await interaction.response.send_message("Loop button pressed", ephemeral=True)
-        self.queues.loop_song()
-
-    @discord.ui.button(label="🔀", style=discord.ButtonStyle.gray, custom_id="music_shuffle")
-    async def shuffle_button(self, button, interaction):
-        await interaction.response.send_message("Shuffle button pressed", ephemeral=True)
-        self.queues.shuffle = True
-
-
 class Queue:
     def __init__(self):
         self.song_list = []
-        self.current_song = None  # [id, title, loop]
+        self.current_song = None  # [id, title,  loop]
         self.shuffle = False
 
     def get_next_song(self, override=False) -> list | None:
-        if self.shuffle:
-            self.current_song = random.choice(self.song_list)
-            return self.current_song
 
         if not (self.current_song is None) and self.current_song[2] and not override:
             return self.current_song
+
+        if self.shuffle and len(self.song_list):
+            self.current_song = random.choice(self.song_list)
+            return self.current_song
+
         elif len(self.song_list):
             self.current_song = self.song_list.pop()
             return self.current_song
@@ -106,10 +46,130 @@ class Queue:
         self.song_list.insert(0, [song_id, title, False])
 
     def loop_song(self):
+        log.debug(self.current_song)
         self.current_song = [self.current_song[0], self.current_song[1], not self.current_song[2]]
 
     def skip_song(self):
         return self.get_next_song(override=True)
+
+
+
+q = Queue()
+
+class ReplayButton(discord.ui.View):
+    def __init__(self, video_url):
+        super().__init__(timeout=None)
+        self.url = video_url
+        self.client = client
+
+    # async def on_timeout(self):
+    #     for child in self.children:
+    #         child.disabled = True
+    #     await self.message.edit(view=self)
+
+    @discord.ui.button(label="Replay", style=discord.ButtonStyle.gray, custom_id="replay")
+    async def button_callback(self, button, interaction):  # Don't remove the unused variable
+        await interaction.response.send_message("Added song to queue.", ephemeral=True)
+        q.add_song(self.url, "Replay")
+        # await self.client.cogs.get('Music').player(self.ctx, self.url)
+
+
+class DedicatedButtons(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.voice = get(client.voice_clients, guild=client.get_guild(guild_id))
+        self.queues = q
+
+    # == Row 1 ==
+    @discord.ui.button(emoji="<:music_loop:1003968639189397574>", style=discord.ButtonStyle.gray, custom_id="music_loop", row=1)
+    async def loop_button(self, button, interaction):
+        # loop button
+        await interaction.response.send_message("Loop toggled", ephemeral=True)
+        if self.voice.is_playing():
+            q.loop_song()
+
+    @discord.ui.button(emoji="<:music_pause:1003968631731925082>", style=discord.ButtonStyle.gray, custom_id="music_playpause", row=1)
+    async def play_pause_button(self, button, interaction):
+        # play pause button
+        if self.voice.is_playing():
+            self.voice.pause()
+            await interaction.response.send_message("Paused the current song.", ephemeral=True)
+        else:
+            self.voice.resume()
+            await interaction.response.send_message("Resumed the current song.", ephemeral=True)
+
+    @discord.ui.button(emoji="<:music_skip:1003968637054484610>", style=discord.ButtonStyle.gray, custom_id="music_skip", row=1)
+    async def skip_button(self, button, interaction):
+        # skip button
+        await interaction.response.send_message("Skip button pressed", ephemeral=True)
+        if self.voice.is_playing():
+            self.voice.stop()
+            await interaction.response.send_message("Skipped the current song.", ephemeral=True)
+
+
+    @discord.ui.button(emoji="<:music_stop:1003968634311426091>", style=discord.ButtonStyle.red, custom_id="music_stop", row=1)
+    async def stop_button(self, button, interaction):
+        # stop button
+        if self.voice.is_playing():
+            self.voice.stop()
+            self.voice.channel.disconnect()
+        await interaction.response.send_message("Stopped the music", ephemeral=True)
+
+
+    # == Row 2 ==
+    @discord.ui.button(emoji="<:music_vol_down:1003968641064255521>", style=discord.ButtonStyle.gray, custom_id="music_vol_down", row=2)
+    async def vol_down_button(self, button, interaction):
+        self.voice.source.volume *= 0.9
+        if self.voice.source.volume < 0.1:
+            self.voice.source.volume = 0.01
+        await interaction.response.send_message(f"Volume is now {self.voice.source.volume * 100}%", ephemeral=True)
+
+
+    @discord.ui.button(emoji="<:shuffle:1004287992984240148>", style=discord.ButtonStyle.gray, custom_id="music_shuffle", row=2)
+    async def shuffle_button(self, button, interaction):
+        await interaction.response.send_message("Shuffle button pressed", ephemeral=True)
+        self.queues.shuffle = True
+
+
+    @discord.ui.button(emoji="<:music_vol_up:1003968645820596287>", style=discord.ButtonStyle.gray, custom_id="music_vol_up", row=2)
+    async def vol_up_button(self, button, interaction):
+        self.voice.source.volume *= 1.1
+        if self.voice.source.volume > 1:
+            self.voice.source.volume = 1
+        await interaction.response.send_message(f"Volume is now {self.voice.source.volume * 100}%", ephemeral=True)
+
+
+    @discord.ui.button(emoji="<:music_heart:1003968643656319047>", style=discord.ButtonStyle.gray, custom_id="music_heart", row=2)
+    async def heart_button(self, button, interaction):
+        db = sqlite3.connect("./data/music.db")
+        c = db.cursor()
+        c.execute(f"CREATE TABLE IF NOT EXISTS playlists_{interaction.user.id} (playlist TEXT, song_id TEXT, titles TEXT)")
+        db.commit()
+        # get user that clicked button
+
+        if not self.queues.current_song[0]:
+            await interaction.response.send_message("No song is currently playing")
+            return
+
+        c.execute(f'SELECT song_id FROM playlists_{interaction.user.id} WHERE song_id="{self.queues.current_song[0]}" AND playlist="main"')
+        res = c.fetchone()
+        if res is not None:
+            await interaction.response.send_message("The song already exists in the `main` playlist!")
+            return
+
+        c.execute(f'INSERT INTO playlists_{interaction.user.id} (playlist, song_id, titles) values("main", "{self.queues.current_song[0]}", "{self.queues.current_song[1][0]}")')
+        db.commit()
+
+        p_embed = discord.Embed(title="Music | Playlist", color=embed_color, url=embed_url, description=f"Adding to the playlist was successful!")
+        p_embed.add_field(name="Song", value=f"`{self.queues.current_song[1][0]}`", inline=False)
+        p_embed.add_field(name="Playlist", value=f"`main`", inline=False)
+        p_embed.set_footer(text=embed_footer)
+        p_embed.set_author(name=embed_header, icon_url=embed_icon)
+        await interaction.response.send_message(embed=p_embed, ephemeral=True)
+
+
+
+
 
 
 
@@ -134,12 +194,14 @@ class Music(commands.Cog):
                 'preferredquality': '192',
             }]
         }
-        self.queues = Queue()
+        self.queues = q
         self.volume = 0.5
 
     @commands.Cog.listener()
     async def on_ready(self):
         log.info("Cog : Music.py Loaded")
+        # client.add_view(ReplayButton)
+        client.add_view(DedicatedButtons())
 
 
     @commands.Cog.listener()
@@ -164,6 +226,23 @@ class Music(commands.Cog):
         if res == "length_too_long":
             return
         log.debug(res)
+
+        # get last 5 msgs in channel
+        """
+        async for msg in ctx.channel.history(limit=5):
+            if msg.author.id == self.client.user.id:
+                # get id of message
+                id = msg.id
+                # edit message
+                m_embed = discord.Embed(title="Music",
+                                        description="Paste a **YouTube URL** or **Song Name** into this Channel.",
+                                        color=embed_color, url=embed_url)
+                m_embed.set_image(url="https://miro.medium.com/max/1400/1*zOshpZng8plvNt3pPv6KIA.png")
+                m_embed.set_footer(text=embed_footer)
+                m_embed.set_author(name=embed_header, icon_url=embed_icon)
+                await msg.edit()
+        """
+
 
 
 
@@ -196,6 +275,7 @@ class Music(commands.Cog):
                 song_id = vid_info['id']
                 video_duration = vid_info['duration']
                 video_title.append(vid_info['title'])
+                video_banner = vid_info['thumbnail']
 
             except Exception as e:
                 log.error(e)
@@ -228,26 +308,23 @@ class Music(commands.Cog):
                 self.queues.add_song(song_id, video_title)
                 self.next_song(voice)
                 voice.source = discord.PCMVolumeTransformer(voice.source, volume=self.volume)
-                return f"now_playing|{video_title[0]}|{song_id}|{video_duration}"
+                return f"now_playing|{video_title[0]}|{song_id}|{video_duration}|{video_banner}"
             else:
                 self.queues.add_song(song_id, video_title)
-                return f"added_to_queue|{video_title[0]}|{song_id}|{video_duration}"
+                return f"added_to_queue|{video_title[0]}|{song_id}|{video_duration}|{video_banner}"
 
 
 
     @music.command(name="setup", description="Setup the music channel")
     async def m_setup(self, ctx):
         if await checkperm(ctx, 3): return
-        voice = get(self.client.voice_clients, guild=ctx.guild)
         m_embed = discord.Embed(title="Music",
                                 description="Paste a **YouTube URL** or **Song Name** into this Channel.",
                                 color=embed_color, url=embed_url)
         m_embed.set_image(url="https://miro.medium.com/max/1400/1*zOshpZng8plvNt3pPv6KIA.png")
         m_embed.set_footer(text=embed_footer)
         m_embed.set_author(name=embed_header, icon_url=embed_icon)
-        await self.client.get_guild(guild_id).get_channel(music_channel).send(embed=m_embed,
-
-                                                                              view=DedicatedButtons(voice))
+        await self.client.get_guild(guild_id).get_channel(music_channel).send(embed=m_embed,view=DedicatedButtons())
 
     @music.command()
     async def play(self, ctx, song: str):
@@ -288,11 +365,13 @@ class Music(commands.Cog):
         if status == "now_playing":
             m_embed.add_field(name="Now Playing", value=f"{video_title}")
             m_embed.add_field(name="Duration", value=f"{video_duration}")
-            await msg.edit_original_message(embed=m_embed, view=ReplayButton(ctx, song, msg))
+            m_embed.set_image(url=res[4])
+            await msg.edit_original_message(embed=m_embed, view=ReplayButton(song))
         elif status == "added_to_queue":
             m_embed.add_field(name="Song added to queue!", value=f"*{video_title}*", inline=False)
             m_embed.add_field(name="Duration", value=f"{video_duration}")
-            await msg.edit_original_message(embed=m_embed, view=ReplayButton(ctx, song, msg))
+            m_embed.set_image(url=res[4])
+            await msg.edit_original_message(embed=m_embed, view=ReplayButton(song))
 
 
 
@@ -382,7 +461,7 @@ class Music(commands.Cog):
 
 
 
-    @music.command()
+    @music.command(name="queue")
     async def queuelist(self, ctx):
         if await checkperm(ctx, 0): return
         if not self.queues.song_list:
@@ -448,7 +527,7 @@ class Music(commands.Cog):
         self.db.commit()
 
         p_embed = discord.Embed(title="Music | Playlist", color=embed_color, url=embed_url, description=f"Adding to the playlist was successful!")
-        p_embed.add_field(name="Song", value=f"{self.queues.current_song[1][0]}", inline=False)
+        p_embed.add_field(name="Song", value=f"`{self.queues.current_song[1][0]}`", inline=False)
         p_embed.add_field(name="Playlist", value=f"`{playlist_name}`", inline=False)
         p_embed.set_footer(text=embed_footer)
         p_embed.set_author(name=embed_header, icon_url=embed_icon)
@@ -456,7 +535,7 @@ class Music(commands.Cog):
 
 
 
-    @playlist.command()
+    @playlist.command(name="play")
     async def play_playlist(self, ctx, playlist_name: str):
         self.c.execute(f"SELECT song_id, titles FROM playlists_{ctx.author.id} WHERE playlist='{playlist_name}'")
         songs = self.c.fetchall()
