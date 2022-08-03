@@ -22,7 +22,7 @@ from backend import log, logger
 async def send_embed(ctx, embed):
     try:
         await ctx.reply(embed=embed)
-        await logger("h", f"Sent help Embed to {ctx.author.name}#{ctx.author.discriminator}", f"Sent help Embed to {ctx.author.name}#{ctx.author.discriminator}", ctx.client)
+        # await logger("h", f"Sent help Embed to {ctx.author.name}#{ctx.author.discriminator}", f"Sent help Embed to {ctx.author.name}#{ctx.author.discriminator}", client)
     except Exception as e:
         log.error(f"Unable to send help Embed. Error: {e}")
 

@@ -89,6 +89,14 @@ try:
     three_emoji: str = config.get('emoji', 'three_emoji')
     four_emoji: str = config.get('emoji', 'four_emoji')
 
+    music_save: str = config.get('music', 'music_save')
+    music_loop: str = config.get('music', 'music_loop')
+    music_pause: str = config.get('music', 'music_pause')
+    music_stop: str = config.get('music', 'music_stop')
+    music_skip: str = config.get('music', 'music_skip')
+    music_vol_down: str = config.get('music', 'music_vol_down')
+    music_vol_up: str = config.get('music', 'music_vol_up')
+
 
 except Exception as err:
     print("Error getting variables from the config file. Error: " + str(err))
@@ -242,13 +250,13 @@ async def serverstatus(ctx, server: str, isslash: bool = True):
     server_embed = discord.Embed(title=f"Status | {server.capitalize()}", url="https://moonball.io",description=f"Live Status for the {server.capitalize()} Server.\nTriggered by {ctx.author.name}#{ctx.author.discriminator}",color=embed_color)
     server_embed.set_author(name=embed_header, icon_url=embed_icon)
     server_embed.set_thumbnail(url=embed_icon)
-    server_embed.add_field(name="<:load_bot:952580881367826542> Status", value=f'{serverstatus}', inline=True)
-    server_embed.add_field(name="<:member_bot:953308738234748928> Players", value=f'{player_count} Online',inline=False)
-    server_embed.add_field(name="<:cpu_bot:951055641395478568> CPU Usage", value=f'{server_info["cpuUsage"]}%',inline=False)
-    server_embed.add_field(name="<:ram_bot:951055641332563988> Memory Usage", value=f'{server_info["memUsage"]}',inline=False)
-    server_embed.add_field(name="<:disk_bot:952580881237803028> Disk Space", value=f'{server_info["spaceOccupied"]}',inline=False)
+    server_embed.add_field(name="<:load:985601267667730552> Status", value=f'{serverstatus}', inline=True)
+    server_embed.add_field(name="<:member:985601285841629244> Players", value=f'{player_count} Online',inline=False)
+    server_embed.add_field(name="<:cpu:984861761377280030> CPU Usage", value=f'{server_info["cpuUsage"]}%',inline=False)
+    server_embed.add_field(name="<:ram:984861734449860659> Memory Usage", value=f'{server_info["memUsage"]}',inline=False)
+    server_embed.add_field(name="<:disk:1003979267241168986> Disk Space", value=f'{server_info["spaceOccupied"]}',inline=False)
     if online:
-        server_embed.add_field(name="<:uptime_bot:951055640967675945> Uptime", value=f'{server_info["uptime"]}',inline=False)
+        server_embed.add_field(name="<:uptime:984861828855267498> Uptime", value=f'{server_info["uptime"]}',inline=False)
     server_embed.set_footer(text=embed_footer)
     if isslash:
         await msg.edit_original_message(embed=server_embed)

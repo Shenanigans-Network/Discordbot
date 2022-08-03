@@ -15,7 +15,7 @@
 import random
 import discord, datetime, sqlite3, asyncio, time
 from discord.ext import commands, tasks
-from backend import prefix, embed_header, embed_footer, embed_color, bot_version, embed_icon, server_list, welcome_channel, embed_url, suggestion_channel, roles_synced, guild_id, member_role, general_channel  # Import bot variables
+from backend import embed_header, embed_footer, embed_color, embed_icon, server_list, welcome_channel, embed_url, suggestion_channel, roles_synced, guild_id, member_role, general_channel  # Import bot variables
 from backend import logger, serverstatus, get_con, sendcmd, ip_embed, version_embed, log    # Import bot functions
 
 
@@ -23,11 +23,6 @@ class Listeners(commands.Cog):
     """Event Listeners for the Bot."""
     def __init__(self, client):
         self.client = client
-        self.embed_icon = embed_icon
-        self.embed_header = embed_header
-        self.embed_footer = embed_footer
-        self.prefix = prefix
-        self.bot_version = bot_version
         self.guild_id = int(guild_id)
 
         try:
@@ -45,7 +40,6 @@ class Listeners(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         log.info("Cog : Listeners.py Loaded")
-        # await self.call_functions()
 
 
 

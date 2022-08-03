@@ -60,11 +60,11 @@ class Info(commands.Cog):
     async def socials(self, ctx):
         if await checkperm(ctx, 0): return
         embed = discord.Embed(title="Social Media", description="Here are the links to our Socials!", url=embed_url, color=embed_color).set_footer(text=embed_footer).set_author(name=embed_header,icon_url=embed_icon).set_thumbnail(url=embed_icon)
-        embed.add_field(name="<:discordlogo:972789364981661716> Discord", value="https://moonball.io/discord", inline=True)
-        embed.add_field(name="<:twitterlogo:972789038727708712> Twitter", value="https://moonball.io/twitter", inline=False)
-        embed.add_field(name="<:youtubelogo:972789038677385226> YouTube", value="https://moonball.io/youtube", inline=False)
-        embed.add_field(name="<:instagramlogo:972789038572527657> Instagram", value="https://moonball.io/instagram", inline=False)
-        embed.add_field(name="<:redditlogo:972789038731886603> Reddit", value="https://moonball.io/reddit", inline=False)
+        embed.add_field(name="<:discordlogo:1003979264846204938> Discord", value="https://moonball.io/discord", inline=True)
+        embed.add_field(name="<:twitterlogo:985601023995441202> Twitter", value="https://moonball.io/twitter", inline=False)
+        embed.add_field(name="<:youtubelogo:985600997541961779> YouTube", value="https://moonball.io/youtube", inline=False)
+        embed.add_field(name="<:instagram:985601063509979256> Instagram", value="https://moonball.io/instagram", inline=False)
+        embed.add_field(name="<:redditlogo:1003978205021077606> Reddit", value="https://moonball.io/reddit", inline=False)
         await ctx.respond(embed=embed)
         await logger("i", f"Sent Socials to message of `{ctx.author.name}#{ctx.author.discriminator}`", self.client)
 
