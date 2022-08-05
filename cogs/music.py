@@ -19,7 +19,7 @@ from discord import SlashCommandGroup
 import discord, os, sqlite3, random, yt_dlp, re, time
 from youtube_search import YoutubeSearch
 from backend import embed_icon, embed_color, embed_footer, embed_header, embed_url, client, music_channel, guild_id  # , music_vc
-from backend import checkperm, log
+from backend import checkperm, log, input_sanitizer
 
 class Queue:
     def __init__(self):
@@ -81,14 +81,14 @@ class DedicatedButtons(discord.ui.View):
         self.queues = q
 
     # == Row 1 ==
-    @discord.ui.button(emoji="<:music_loop:1003968639189397574>", style=discord.ButtonStyle.gray, custom_id="music_loop", row=1)
+    @discord.ui.button(emoji="<:music_loop:1003968639189397574>", style=discord.ButtonStyle.green, custom_id="music_loop", row=1)
     async def loop_button(self, button, interaction):
         # loop button
         await interaction.response.send_message("Loop toggled", ephemeral=True)
         if self.voice.is_playing():
             q.loop_song()
 
-    @discord.ui.button(emoji="<:music_pause:1003968631731925082>", style=discord.ButtonStyle.gray, custom_id="music_playpause", row=1)
+    @discord.ui.button(emoji="<:music_pause:1003968631731925082>", style=discord.ButtonStyle.blurple, custom_id="music_playpause", row=1)
     async def play_pause_button(self, button, interaction):
         # play pause button
         if self.voice.is_playing():
@@ -98,7 +98,7 @@ class DedicatedButtons(discord.ui.View):
             self.voice.resume()
             await interaction.response.send_message("Resumed the current song.", ephemeral=True)
 
-    @discord.ui.button(emoji="<:music_skip:1003968637054484610>", style=discord.ButtonStyle.gray, custom_id="music_skip", row=1)
+    @discord.ui.button(emoji="<:music_skip:1003968637054484610>", style=discord.ButtonStyle.green, custom_id="music_skip", row=1)
     async def skip_button(self, button, interaction):
         # skip button
         await interaction.response.send_message("Skip button pressed", ephemeral=True)
@@ -117,7 +117,7 @@ class DedicatedButtons(discord.ui.View):
 
 
     # == Row 2 ==
-    @discord.ui.button(emoji="<:music_vol_down:1003968641064255521>", style=discord.ButtonStyle.gray, custom_id="music_vol_down", row=2)
+    @discord.ui.button(emoji="<:music_vol_down:1003968641064255521>", style=discord.ButtonStyle.green, custom_id="music_vol_down", row=2)
     async def vol_down_button(self, button, interaction):
         self.voice.source.volume *= 0.9
         if self.voice.source.volume < 0.1:
@@ -125,13 +125,13 @@ class DedicatedButtons(discord.ui.View):
         await interaction.response.send_message(f"Volume is now {self.voice.source.volume * 100}%", ephemeral=True)
 
 
-    @discord.ui.button(emoji="<:shuffle:1004287992984240148>", style=discord.ButtonStyle.gray, custom_id="music_shuffle", row=2)
+    @discord.ui.button(emoji="<:shuffle:1004287992984240148>", style=discord.ButtonStyle.blurple, custom_id="music_shuffle", row=2)
     async def shuffle_button(self, button, interaction):
         await interaction.response.send_message("Shuffle button pressed", ephemeral=True)
         self.queues.shuffle = True
 
 
-    @discord.ui.button(emoji="<:music_vol_up:1003968645820596287>", style=discord.ButtonStyle.gray, custom_id="music_vol_up", row=2)
+    @discord.ui.button(emoji="<:music_vol_up:1003968645820596287>", style=discord.ButtonStyle.green, custom_id="music_vol_up", row=2)
     async def vol_up_button(self, button, interaction):
         self.voice.source.volume *= 1.1
         if self.voice.source.volume > 1:
@@ -139,7 +139,7 @@ class DedicatedButtons(discord.ui.View):
         await interaction.response.send_message(f"Volume is now {self.voice.source.volume * 100}%", ephemeral=True)
 
 
-    @discord.ui.button(emoji="<:music_heart:1003968643656319047>", style=discord.ButtonStyle.gray, custom_id="music_heart", row=2)
+    @discord.ui.button(emoji="<:music_heart:1003968643656319047>", style=discord.ButtonStyle.red, custom_id="music_heart", row=2)
     async def heart_button(self, button, interaction):
         db = sqlite3.connect("./data/music.db")
         c = db.cursor()
@@ -227,21 +227,8 @@ class Music(commands.Cog):
             return
         log.debug(res)
 
-        # get last 5 msgs in channel
-        """
-        async for msg in ctx.channel.history(limit=5):
-            if msg.author.id == self.client.user.id:
-                # get id of message
-                id = msg.id
-                # edit message
-                m_embed = discord.Embed(title="Music",
-                                        description="Paste a **YouTube URL** or **Song Name** into this Channel.",
-                                        color=embed_color, url=embed_url)
-                m_embed.set_image(url="https://miro.medium.com/max/1400/1*zOshpZng8plvNt3pPv6KIA.png")
-                m_embed.set_footer(text=embed_footer)
-                m_embed.set_author(name=embed_header, icon_url=embed_icon)
-                await msg.edit()
-        """
+
+
 
 
 
@@ -251,6 +238,8 @@ class Music(commands.Cog):
         song = self.queues.get_next_song()
         if song: voice.play(discord.FFmpegPCMAudio(f'./data/songs/{song[0]}.mp3'),
                             after=lambda x: self.next_song(voice))
+
+
 
     async def player(self, ctx, song_url):
         vc = get(ctx.guild.voice_channels, name="Music")
@@ -274,7 +263,9 @@ class Music(commands.Cog):
                 vid_info = ydl.extract_info(song_url, download=False)
                 song_id = vid_info['id']
                 video_duration = vid_info['duration']
-                video_title.append(vid_info['title'])
+                title = vid_info['title'].replace('"', '')
+                video_title.append(title)
+                del title
                 video_banner = vid_info['thumbnail']
 
             except Exception as e:
@@ -310,7 +301,7 @@ class Music(commands.Cog):
                 voice.source = discord.PCMVolumeTransformer(voice.source, volume=self.volume)
                 return f"now_playing|{video_title[0]}|{song_id}|{video_duration}|{video_banner}"
             else:
-                self.queues.add_song(song_id, video_title)
+                self.queues.add_song(song_id, video_title, )
                 return f"added_to_queue|{video_title[0]}|{song_id}|{video_duration}|{video_banner}"
 
 
@@ -321,14 +312,18 @@ class Music(commands.Cog):
         m_embed = discord.Embed(title="Music",
                                 description="Paste a **YouTube URL** or **Song Name** into this Channel.",
                                 color=embed_color, url=embed_url)
-        m_embed.set_image(url="https://miro.medium.com/max/1400/1*zOshpZng8plvNt3pPv6KIA.png")
+        m_embed.set_image(url="https://media.discordapp.net/attachments/988082459658813490/1004316068476624977/music_banner.jpg")
         m_embed.set_footer(text=embed_footer)
         m_embed.set_author(name=embed_header, icon_url=embed_icon)
         await self.client.get_guild(guild_id).get_channel(music_channel).send(embed=m_embed,view=DedicatedButtons())
 
+
+
     @music.command()
     async def play(self, ctx, song: str):
         if await checkperm(ctx, 0): return
+        song = await input_sanitizer(song)
+        log.debug(song)
         start_time = time.time()
 
         m_embed = discord.Embed(title="Music", color=embed_color, url=embed_url)
@@ -396,9 +391,8 @@ class Music(commands.Cog):
     @music.command()
     async def loop(self, ctx):
         if await checkperm(ctx, 0): return
-
         self.queues.loop_song()
-        song = self.queues.current_song[1].replace("[", "").replace("'", "").replace("]", "")
+        song = self.queues.current_song[1][0].replace("[", "").replace("'", "").replace("]", "")
         await ctx.respond(f'{song} will be looped!')
 
 
@@ -506,7 +500,8 @@ class Music(commands.Cog):
 
     @playlist.command()
     async def add(self, ctx, playlist_name: str):
-
+        if await checkperm(ctx, 0): return
+        playlist_name = await input_sanitizer(playlist_name)
         self.c.execute(f"CREATE TABLE IF NOT EXISTS playlists_{ctx.author.id} (playlist TEXT, song_id TEXT, titles TEXT)")
         self.db.commit()
 
@@ -534,18 +529,18 @@ class Music(commands.Cog):
         await ctx.respond(embed=p_embed)
 
 
-
     @playlist.command(name="play")
     async def play_playlist(self, ctx, playlist_name: str):
+        if await checkperm(ctx, 0): return
+        playlist_name = await input_sanitizer(playlist_name)
         self.c.execute(f"SELECT song_id, titles FROM playlists_{ctx.author.id} WHERE playlist='{playlist_name}'")
         songs = self.c.fetchall()
 
         if not songs:
-            await ctx.respond("No songs in your songs playlist! Try again.")
+            await ctx.respond(f"No songs in your `{playlist_name}` playlist! Try again.")
             return
 
         # voice = get(self.client.voice_clients, guild=ctx.guild)
-
         for song in songs:
             self.queues.add_song(song[0], song[1])
         # self.next_song(voice)
@@ -558,8 +553,10 @@ class Music(commands.Cog):
         await ctx.respond(embed=p_embed)
 
 
-    @playlist.command(name="list")
-    async def _list(self, ctx, playlist_name: str):
+    @playlist.command(name="list", description="Lists all the songs in a playlist")
+    async def playlist_list(self, ctx, playlist_name: str):
+        if await checkperm(ctx, 0): return
+        playlist_name = await input_sanitizer(playlist_name)
         self.c.execute(f"SELECT song_id, titles FROM playlists_{ctx.author.id} WHERE playlist='{playlist_name}'")
         songs = self.c.fetchall()
 
@@ -577,8 +574,30 @@ class Music(commands.Cog):
         m_embed.add_field(name="Songs", value=song_list, inline=False)
         await ctx.respond(embed=m_embed)
 
-    @playlist.command()
+
+    @playlist.command(name="listplaylists", description="Lists all your playlists")
+    async def show_playlists(self, ctx):
+        if await checkperm(ctx, 0): return
+        self.c.execute(f"SELECT playlist FROM playlists_{ctx.author.id}")
+        playlists = self.c.fetchall()
+        # remove duplicates
+        playlists = list(set(playlists))
+
+        if not playlists:
+            await ctx.respond("No playlists found!")
+            return
+        m_embed = discord.Embed(title="Music | Playlist", color=embed_color, url=embed_url)
+        m_embed.set_footer(text=embed_footer)
+        m_embed.set_author(name=embed_header, icon_url=embed_icon)
+        m_embed.add_field(name="Playlists", value="\n".join([f"`{playlist[0]}`" for playlist in playlists]), inline=False)
+        await ctx.respond(embed=m_embed)
+
+
+
+    @playlist.command(name="remove", description="Remove a song from a playlist")
     async def removesong(self, ctx, playlist_name: str):
+        if await checkperm(ctx, 0): return
+        playlist_name = await input_sanitizer(playlist_name)
         self.c.execute(f'DELETE FROM playlists_{ctx.author.id} WHERE song_id="{self.queues.current_song[0]}" AND playlist="{playlist_name}"')
         self.db.commit()
 
@@ -590,9 +609,25 @@ class Music(commands.Cog):
         await ctx.respond(embed=p_embed)
 
 
+    @playlist.command(name="rename", description="Rename a playlist")
+    async def rename_playlist(self, ctx, old_name: str, new_name: str):
+        if await checkperm(ctx, 0): return
+        old_name = await input_sanitizer(old_name)
+        new_name = await input_sanitizer(new_name)
+        self.c.execute(f'UPDATE playlists_{ctx.author.id} SET playlist="{new_name}" WHERE playlist="{old_name}"')
+        self.db.commit()
 
-    @playlist.command()
+        p_embed = discord.Embed(title="Music | Playlist", color=embed_color, url=embed_url, description=f"Renaming the playlist was successful!")
+        p_embed.add_field(name="Playlist", value=f"`{new_name}`", inline=False)
+        p_embed.set_footer(text=embed_footer)
+        p_embed.set_author(name=embed_header, icon_url=embed_icon)
+        await ctx.respond(embed=p_embed)
+
+
+    @playlist.command(name="delete", description="Delete a playlist")
     async def deleteall(self, ctx, playlist_name: str):
+        if await checkperm(ctx, 0): return
+        playlist_name = await input_sanitizer(playlist_name)
         self.c.execute(f"SELECT titles FROM playlists_{ctx.author.id} WHERE playlist='{playlist_name}'")
         songs = len(self.c.fetchall())
 
@@ -647,6 +682,7 @@ class Music(commands.Cog):
         p_embed.set_footer(text=embed_footer)
         p_embed.set_author(name=embed_header, icon_url=embed_icon)
         await ctx.respond(embed=p_embed)
+
 
 
 def setup(client):
