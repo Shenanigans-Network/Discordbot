@@ -74,7 +74,7 @@ https://github.com/Shenanigans-Network/Discordbot/wiki
 
 
 ## Development ##
-The discord Bot is built in `Python`, using the `discord.py` library.
+The discord Bot is built in `Python`, using the `py-cord` library.
 To add your custom code, it must be in the pycord cog format.  
 
 ```python
@@ -85,10 +85,10 @@ class Example(commands.Cog):
   def __init__(self, client):
     self.client = client
 
-    # Use @command.Cog.listener() for listeners
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print("Cog : Example.py Loaded")
+  # Use @command.Cog.listener() for listeners
+  @commands.Cog.listener()
+  async def on_ready(self):
+    print("Cog : Example.py Loaded")
     
   # Use @commands.command() for a command
   @commands.command()

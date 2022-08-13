@@ -234,10 +234,8 @@ class Music(commands.Cog):
 
 
     def next_song(self, voice) -> None:
-
         song = self.queues.get_next_song()
-        if song: voice.play(discord.FFmpegPCMAudio(f'./data/songs/{song[0]}.mp3'),
-                            after=lambda x: self.next_song(voice))
+        if song: voice.play(discord.FFmpegPCMAudio(f'./data/songs/{song[0]}.mp3'), after=lambda x: self.next_song(voice))
 
 
 
@@ -407,10 +405,9 @@ class Music(commands.Cog):
 
 
 
-    @music.command()
+    @music.command(name="leave", description="Leave the voice channel")
     async def leave(self, ctx):
         if await checkperm(ctx, 1): return
-
         voice = get(self.client.voice_clients, guild=ctx.guild)
 
         if voice.is_connected():
@@ -420,7 +417,7 @@ class Music(commands.Cog):
 
 
 
-    @music.command()
+    @music.command(name="pause", description="Pause the music")
     async def pause(self, ctx):
         if await checkperm(ctx, 0): return
         voice = get(self.client.voice_clients, guild=ctx.guild)
@@ -433,7 +430,7 @@ class Music(commands.Cog):
 
 
 
-    @music.command()
+    @music.command(name="resume", description="Resume the music")
     async def resume(self, ctx):
         voice = get(self.client.voice_clients, guild=ctx.guild)
 
@@ -445,7 +442,7 @@ class Music(commands.Cog):
 
 
 
-    @music.command()
+    @music.command(name="stop", description="Stops the music and clears the queue")
     async def stop(self, ctx):
         if await checkperm(ctx, 1): return
         voice = get(self.client.voice_clients, guild=ctx.guild)
@@ -455,7 +452,7 @@ class Music(commands.Cog):
 
 
 
-    @music.command(name="queue")
+    @music.command(name="queue", description="Shows the current queue")
     async def queuelist(self, ctx):
         if await checkperm(ctx, 0): return
         if not self.queues.song_list:
@@ -466,9 +463,7 @@ class Music(commands.Cog):
         # song_list = [f"{i+1}. {song[1].replace('[', '').replace(']', '')}" for i, song in enumerate(self.queues.song_list)]
 
         queue_list = [f"{self.queues.song_list[i][1]}" for i in range(len(self.queues.song_list))][::-1]
-        queue_list = "\n".join([f"{i + 1}. {queue_list[i]}".replace("[", "").replace("]", "").replace("'", "") for i in
-                                range(len(queue_list))])
-
+        queue_list = "\n".join([f"{i + 1}. {queue_list[i]}".replace("[", "").replace("]", "").replace("'", "") for i in range(len(queue_list))])
 
         m_embed = discord.Embed(title="Music", color=embed_color, url=embed_url)
         m_embed.set_footer(text=embed_footer)
@@ -478,7 +473,7 @@ class Music(commands.Cog):
 
 
 
-    @music.command()
+    @music.command(name="skip", description="Skips the current song")
     async def skip(self, ctx):
         if await checkperm(ctx, 0): return
 
@@ -492,6 +487,8 @@ class Music(commands.Cog):
             await ctx.respond("Skipped current song!")
         else:
             await ctx.respond("No music is playing")
+
+
 
 
     #
@@ -553,7 +550,7 @@ class Music(commands.Cog):
         await ctx.respond(embed=p_embed)
 
 
-    @playlist.command(name="list", description="Lists all the songs in a playlist")
+    @playlist.command(name="listsongs", description="Lists all the songs in a playlist")
     async def playlist_list(self, ctx, playlist_name: str):
         if await checkperm(ctx, 0): return
         playlist_name = await input_sanitizer(playlist_name)
@@ -575,7 +572,7 @@ class Music(commands.Cog):
         await ctx.respond(embed=m_embed)
 
 
-    @playlist.command(name="listplaylists", description="Lists all your playlists")
+    @playlist.command(name="list", description="Lists all your playlists")
     async def show_playlists(self, ctx):
         if await checkperm(ctx, 0): return
         self.c.execute(f"SELECT playlist FROM playlists_{ctx.author.id}")
@@ -682,6 +679,7 @@ class Music(commands.Cog):
         p_embed.set_footer(text=embed_footer)
         p_embed.set_author(name=embed_header, icon_url=embed_icon)
         await ctx.respond(embed=p_embed)
+
 
 
 
