@@ -1,3 +1,6 @@
+![Lines of code](https://img.shields.io/tokei/lines/github.com/Shenanigans-Network/Discordbot)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/Django)
+
 # Moonball Discord Bot #
 This Discord Bot was originally made to improve user experience on the Moonball Network's Discord server, But now it has turned to something very big  
 It has Many Features, Spread into multiple cogs for easy readability and higher performance.
