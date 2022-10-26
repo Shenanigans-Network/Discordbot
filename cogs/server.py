@@ -58,12 +58,12 @@ class Server(commands.Cog):
         try:
             server_info = await status(server.lower())  # Gets server info from Pterodactyl API
         except Exception as e:
-            await msg.edit_original_message(embed=discord.Embed(title=f"Server Status | {server.capitalize()}",description=f"**Error**: Couldn't get Status\n{e}",color=embed_color,url="https://moonball.io").set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            await msg.edit_original_response(embed=discord.Embed(title=f"Server Status | {server.capitalize()}",description=f"**Error**: Couldn't get Status\n{e}",color=embed_color,url="https://moonball.io").set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             log.warning(f"[Server] Error while trying to get Server Status. Error: {str(e)}")
             return
         server_status = server_info["state"]
         if server_status != "running":
-            await msg.edit_original_message(embed=discord.Embed(title=f"Server Status | {server.capitalize()}",description=f"**Error**: Server is {server_status.capitalize()}",color=embed_color,url="https://moonball.io").set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            await msg.edit_original_response(embed=discord.Embed(title=f"Server Status | {server.capitalize()}",description=f"**Error**: Server is {server_status.capitalize()}",color=embed_color,url="https://moonball.io").set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
             return
         player_list = JavaServer.lookup(serv_ips.get(server)).query().players.names
         player_count = JavaServer.lookup(serv_ips.get(server)).query().players.online
@@ -72,7 +72,7 @@ class Server(commands.Cog):
         pc_embed.add_field(name="Player Count", value=player_count, inline=False)
         if player_count != 0:
             pc_embed.add_field(name=f"Player List | {server.capitalize()}", value='\n'.join(player_list), inline=False)
-        await msg.edit_original_message(embed=pc_embed)
+        await msg.edit_original_response(embed=pc_embed)
         await logger("i", f"Sent `{ctx.author.name}#{ctx.author.discriminator}` Player List of `{server.capitalize()}`", self.client)
 
 

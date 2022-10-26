@@ -32,23 +32,17 @@ except Exception as errr:
     print("Unable to import modules. Please make sure you have the required modules installed. Error: ", errr)
     exit()
 
-
 bot_version = "0.6.0"
 intents = discord.Intents.all()
-
 
 # Loading config.ini
 config = configparser.ConfigParser()
 
 try:
-   config.read('data/config.ini')
+    config.read('data/config.ini')
 except Exception as e:
     print("Error reading the config.ini file. Error: " + str(e))
     exit()
-
-
-
-
 
 #  ==Getting variables from config file==
 try:
@@ -120,7 +114,8 @@ def colorlogger(name='moonball'):
     else:
         log.warning(f"Invalid log level {log_level}. Defaulting to INFO.")
         logger.setLevel("INFO")
-    return logger # Return the logger
+    return logger  # Return the logger
+
 
 log = colorlogger()
 
@@ -132,10 +127,9 @@ except Exception as err:
 # noinspection PyUnboundLocalVariable
 cur = con.cursor()
 
-
 # noinspection PyUnboundLocalVariable
-client = commands.Bot(command_prefix=prefix, intents=intents, help_command=None, case_insensitive=True)  # Setting prefix
-
+client = commands.Bot(command_prefix=prefix, intents=intents, help_command=None,
+                      case_insensitive=True)  # Setting prefix
 
 # Getting Server Names into a List
 server_list: list = []
@@ -148,7 +142,6 @@ try:
 except Exception as error:
     log.error(f"Error getting server list from config. Error: {error}")
 
-
 # Getting Server IPs to a Dictionary
 ip_cat = config['ips']
 try:
@@ -158,8 +151,6 @@ try:
     log.debug(f"Server IPs: {serv_ips}")
 except Exception as error:
     log.error(f"Error getting server IPs from config. Error: {error}")
-
-
 
 # Getting Pterodactyl Identifies to a Dictionary
 ip_cat = config['server guide']
@@ -173,6 +164,7 @@ try:
     log.debug(f"Ptero IDs Reverse: {server_guide_r}")
 except Exception as error:
     log.error(f"Error getting server IPs from config. Error: {error}")
+
 
 #
 # === Embeds ===
@@ -194,10 +186,10 @@ async def ip_embed(ctx, isslash: bool = False):
     await logger("i", f'Sent IP Embed to message of `{ctx.author.name}#{ctx.author.discriminator}`', client)
 
 
-
 async def version_embed(ctx, isslash: bool = False):
     if await checkperm(ctx, 0): return
-    vembed = discord.Embed(title="Here's the Server Version!", url="https://moonball.io", color=embed_color).set_footer(text=embed_footer)
+    vembed = discord.Embed(title="Here's the Server Version!", url="https://moonball.io", color=embed_color).set_footer(
+        text=embed_footer)
     vembed.set_author(name=embed_header, icon_url=embed_icon)
     vembed.add_field(name="Java ", value="1.13 - 1.19", inline=True)
     vembed.add_field(name="Bedrock ", value="1.17.40 - 1.19.0", inline=False)
@@ -211,7 +203,8 @@ async def version_embed(ctx, isslash: bool = False):
 
 async def input_sanitizer(input_str):
     # Sanitize input
-    cleaned = input_str.replace("'", "").replace('"', "").replace("`", "").replace("\\", "").replace("\n", "").replace("\r", "").replace(";", '')
+    cleaned = input_str.replace("'", "").replace('"', "").replace("`", "").replace("\\", "").replace("\n", "").replace(
+        "\r", "").replace(";", '')
     return cleaned
 
 
@@ -222,16 +215,28 @@ async def input_sanitizer(input_str):
 async def serverstatus(ctx, server: str, isslash: bool = True):
     if await checkperm(ctx, 0): return
     if isslash:
-        msg = await ctx.respond(embed=discord.Embed(title=f"Server Status | {server.capitalize()}",description=f"*Please hold on, Command Content is loading*",color=embed_color, url="https://moonball.io").set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), ephemeral=True)
+        msg = await ctx.respond(embed=discord.Embed(title=f"Server Status | {server.capitalize()}",
+                                                    description=f"*Please hold on, Command Content is loading*",
+                                                    color=embed_color, url="https://moonball.io").set_footer(
+            text=embed_footer).set_author(name=embed_header, icon_url=embed_icon), ephemeral=True)
     else:
-        msg = await ctx.reply(embed=discord.Embed(title=f"Server Status | {server.capitalize()}",description=f"*Please hold on, Command Content is loading*",color=embed_color, url="https://moonball.io").set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+        msg = await ctx.reply(embed=discord.Embed(title=f"Server Status | {server.capitalize()}",
+                                                  description=f"*Please hold on, Command Content is loading*",
+                                                  color=embed_color, url="https://moonball.io").set_footer(
+            text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
     try:
         server_info = await status(server.lower())  # Gets server info from Pterodactyl API
     except Exception as error:
         if isslash:
-            msg.edit_original_message(embed=discord.Embed(title=f"Server Status | {server.capitalize()}",description=f"**Error**: Couldn't get Status\n{e}",color=embed_color, url="https://moonball.io").set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            msg.edit_original_response(embed=discord.Embed(title=f"Server Status | {server.capitalize()}",
+                                                           description=f"**Error**: Couldn't get Status\n{e}",
+                                                           color=embed_color, url="https://moonball.io").set_footer(
+                text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
         else:
-            msg.edit(embed=discord.Embed(title=f"Server Status | {server.capitalize()}",description=f"**Error**: Couldn't get Status\n{e}",color=embed_color, url="https://moonball.io").set_footer(text=embed_footer).set_author(name=embed_header, icon_url=embed_icon))
+            msg.edit(embed=discord.Embed(title=f"Server Status | {server.capitalize()}",
+                                         description=f"**Error**: Couldn't get Status\n{e}", color=embed_color,
+                                         url="https://moonball.io").set_footer(text=embed_footer).set_author(
+                name=embed_header, icon_url=embed_icon))
         log.error(f"Error while trying to get Server Status. Error: {str(error)}")
         return
     serverstatus = server_info["state"]  # Setting this as placeholder state
@@ -252,23 +257,26 @@ async def serverstatus(ctx, server: str, isslash: bool = True):
     elif serverstatus == "stopping":  # If server is stopping
         serverstatus = "Stopping <:outage:915916198032588800>"
     # Embed
-    server_embed = discord.Embed(title=f"Status | {server.capitalize()}", url="https://moonball.io",description=f"Live Status for the {server.capitalize()} Server.\nTriggered by {ctx.author.name}#{ctx.author.discriminator}",color=embed_color)
+    server_embed = discord.Embed(title=f"Status | {server.capitalize()}", url="https://moonball.io",
+                                 description=f"Live Status for the {server.capitalize()} Server.\nTriggered by {ctx.author.name}#{ctx.author.discriminator}",
+                                 color=embed_color)
     server_embed.set_author(name=embed_header, icon_url=embed_icon)
     server_embed.set_thumbnail(url=embed_icon)
-    server_embed.add_field(name="<:load:985601267667730552> Status", value=f'{serverstatus}', inline=True)
-    server_embed.add_field(name="<:member:985601285841629244> Players", value=f'{player_count} Online',inline=False)
-    server_embed.add_field(name="<:cpu:984861761377280030> CPU Usage", value=f'{server_info["cpuUsage"]}%',inline=False)
-    server_embed.add_field(name="<:ram:984861734449860659> Memory Usage", value=f'{server_info["memUsage"]}',inline=False)
-    server_embed.add_field(name="<:disk:1003979267241168986> Disk Space", value=f'{server_info["spaceOccupied"]}',inline=False)
+    server_embed.add_field(name="Status", value=f'{serverstatus}', inline=True)
+    server_embed.add_field(name="Players", value=f'{player_count} Online', inline=False)
+    server_embed.add_field(name="CPU Usage", value=f'{server_info["cpuUsage"]}%', inline=False)
+    server_embed.add_field(name="Memory Usage", value=f'{server_info["memUsage"]}', inline=False)
+    server_embed.add_field(name="Disk Space", value=f'{server_info["spaceOccupied"]}', inline=False)
     if online:
-        server_embed.add_field(name="<:uptime:984861828855267498> Uptime", value=f'{server_info["uptime"]}',inline=False)
+        server_embed.add_field(name="Uptime", value=f'{server_info["uptime"]}', inline=False)
     server_embed.set_footer(text=embed_footer)
     if isslash:
-        await msg.edit_original_message(embed=server_embed)
+        await msg.edit_original_response(embed=server_embed)
     else:
         await msg.edit(embed=server_embed, view=DeleteButton(msg))
-    await logger("i",f'Server Status : Sent Server `{server.capitalize()}` embed to message of `{ctx.author.name}#{ctx.author.discriminator}`', client)
-
+    await logger("i",
+                 f'Server Status : Sent Server `{server.capitalize()}` embed to message of `{ctx.author.name}#{ctx.author.discriminator}`',
+                 client)
 
 
 # This function gets the corresponding connected Minecraft account of the user from their Discord ID
@@ -280,7 +288,6 @@ async def get_con(disc_id: int) -> str | None:
         return result[0]
     else:
         return None
-
 
 
 # This function is used to check if a Minecraft Account is in the AuthMe Database.
@@ -295,7 +302,8 @@ async def mc_exists(username: str) -> bool:
             database=db_name
         )
     except mysql.connector.Error as e:  # If there is an error
-        log.error(f"Unable to connect to the Authme MYSQL database. Are the credentials within config.ini correct? Error: {e}")
+        log.error(
+            f"Unable to connect to the Authme MYSQL database. Are the credentials within config.ini correct? Error: {e}")
         return False
     c = mydb.cursor()
     c.execute(f"SELECT username FROM authme WHERE username = '{username}';")
@@ -309,11 +317,13 @@ async def mc_exists(username: str) -> bool:
 
 
 # This function is to check if there are any illegal characters in a string.
-async def bad_char(input_str: str, preset: list | str=None) -> str | None:
+async def bad_char(input_str: str, preset: list | str = None) -> str | None:
     if preset is None:
-        illegal_chars = [";", "'", '"', ".", ",", ":", "!", "?", "`", "~", "@", "#", "$", "%", "^", "&", "*", "(", ")", "-", "=", "[", "]", "{", "}", "|", "\\", "/", ">", "<", "`", "+"]
+        illegal_chars = [";", "'", '"', ".", ",", ":", "!", "?", "`", "~", "@", "#", "$", "%", "^", "&", "*", "(", ")",
+                         "-", "=", "[", "]", "{", "}", "|", "\\", "/", ">", "<", "`", "+"]
     elif preset == "username":
-        illegal_chars = [";", "'", '"', ".", ",", ":", "!", "?", "`", "~", "@", "#", "$", "%", "^", "&", "*", "(", ")", "-", "=", "[", "]", "{", "}", "|", "\\", "/", ">", "<", "`"]
+        illegal_chars = [";", "'", '"', ".", ",", ":", "!", "?", "`", "~", "@", "#", "$", "%", "^", "&", "*", "(", ")",
+                         "-", "=", "[", "]", "{", "}", "|", "\\", "/", ">", "<", "`"]
     elif preset == "password":
         illegal_chars = [";", "'", '"']
     else:
@@ -332,7 +342,6 @@ async def bad_char(input_str: str, preset: list | str=None) -> str | None:
         return f"`{'`, `'.join(chars_found)}`"  # Converts list to string with Discord ` formatting
 
 
-
 async def logger(cat, msg, client):  # Logs to Log channel
     logtype = {"s": "Suggestion", "f": "Fun", "h": "Help", "i": "Info", "a": "Admin", "m": "Minecraft", "o": "other"}
     logchannel = client.get_channel(log_channel)
@@ -340,21 +349,20 @@ async def logger(cat, msg, client):  # Logs to Log channel
     log.info(msg.replace("`", ""))
 
 
-
-
 async def resetcount(ctx, kw: str) -> bool:  # Counter Add Function
 
-    name_dict = {"s": "suggestion", "f": "fun", "h": "help", "i": "info", "a": "admin", "m": "minecraft", "o": "other", "all": "all"}
+    name_dict = {"s": "suggestion", "f": "fun", "h": "help", "i": "info", "a": "admin", "m": "minecraft", "o": "other",
+                 "all": "all"}
     if kw == "all":
         for cat in ["a", "s", "f", "i", "h", "m", "o"]:
             cur.execute(f'UPDATE counters SET count=:c WHERE cname=:n', {"c": 0, "n": cat})
     else:
-        cur.execute(f'UPDATE counters SET count=:c WHERE cname=:n', {"c": 0, "n":kw})
+        cur.execute(f'UPDATE counters SET count=:c WHERE cname=:n', {"c": 0, "n": kw})
     con.commit()
     log.debug(f"resetcount: {kw}")
-    await logger("a", f"`{name_dict[kw]}` Counter was reset by `{ctx.author.name}#{ctx.author.discriminator}`", client)  # Logs to Log channel
+    await logger("a", f"`{name_dict[kw]}` Counter was reset by `{ctx.author.name}#{ctx.author.discriminator}`",
+                 client)  # Logs to Log channel
     return True
-
 
 
 def countadd(cat: str) -> int | None:  # Counter Add Function
@@ -366,7 +374,6 @@ def countadd(cat: str) -> int | None:  # Counter Add Function
     return count
 
 
-
 #
 # === Pterodactyl Interacting ===
 #
@@ -376,10 +383,10 @@ def form_dict(stats):  # Takes raw data from the Pterodactyl API and converts it
     ph_keys = ["state", "memUsage", "cpuUsage", "spaceOccupied", "uptime"]
     ph_values = [
         stats["attributes"]["current_state"],
-                 str(round(stats["attributes"]["resources"]["memory_bytes"] / 1073741824, 2)) + " GB",
-                 str(round(stats["attributes"]["resources"]["cpu_absolute"], 2)),
-                 str(round(stats["attributes"]["resources"]["disk_bytes"] / 1073741824, 2)) + " GB",
-                 str(round(stats["attributes"]["resources"]["uptime"] / 3600000, 2)) + " hour(s)"
+        str(round(stats["attributes"]["resources"]["memory_bytes"] / 1073741824, 2)) + " GB",
+        str(round(stats["attributes"]["resources"]["cpu_absolute"], 2)),
+        str(round(stats["attributes"]["resources"]["disk_bytes"] / 1073741824, 2)) + " GB",
+        str(round(stats["attributes"]["resources"]["uptime"] / 3600000, 2)) + " hour(s)"
     ]
     for ind, ph_key in enumerate(ph_keys): placeholders[ph_key] = ph_values[ind]
     return placeholders
@@ -387,7 +394,8 @@ def form_dict(stats):  # Takes raw data from the Pterodactyl API and converts it
 
 # This function get the status of a server from the Pterodactyl API.
 async def status(server: str):  # Gets the status of a server
-    headers = {"Authorization": f"Bearer {ptero_apikey}", "Accept": "application/json", "Content-Type": "application/json"}
+    headers = {"Authorization": f"Bearer {ptero_apikey}", "Accept": "application/json",
+               "Content-Type": "application/json"}
     if server == "all":
         servers = {}
         for server_id in list(server_guide_r.keys()):
@@ -395,14 +403,17 @@ async def status(server: str):  # Gets the status of a server
             servers[server_guide_r[server_id]] = form_dict(requests.request('GET', url, headers=headers).json())
         return servers
     if server not in list(server_guide_r.values()): return "Invalid server name"
-    return form_dict(requests.request('GET', f"https://{ptero_panel}/api/client/servers/{[x[0] for x in server_guide_r.items() if x[1] == server][0]}/resources", headers=headers).json())
+    return form_dict(requests.request('GET',
+                                      f"https://{ptero_panel}/api/client/servers/{[x[0] for x in server_guide_r.items() if x[1] == server][0]}/resources",
+                                      headers=headers).json())
 
 
 # This function changes the power of a server from the Pterodactyl API.
 async def serverpower(server: str, power: str) -> bool:  # Sets the power of a server
     ptero_panel = "panel.moonball.io"  # Put your Pterodactyl Panel's URL here
     url = f'https://{ptero_panel}/api/client/servers/{server_guide[server]}/power'
-    headers = {"Authorization": f"Bearer {ptero_apikey}", "Accept": "application/json", "Content-Type": "application/json"}
+    headers = {"Authorization": f"Bearer {ptero_apikey}", "Accept": "application/json",
+               "Content-Type": "application/json"}
     if power == "start":
         payload = '{"signal": "start"}'
     elif power == "stop":
@@ -422,7 +433,8 @@ async def serverpower(server: str, power: str) -> bool:  # Sets the power of a s
 # This function sends a Console Command to a server from the Pterodactyl API.
 async def sendcmd(server_name: str, command: str) -> bool:
     url = f'https://{ptero_panel}/api/client/servers/{server_guide[server_name]}/command'
-    headers = {"Authorization": f"Bearer {ptero_apikey}", "Accept": "application/json","Content-Type": "application/json"}
+    headers = {"Authorization": f"Bearer {ptero_apikey}", "Accept": "application/json",
+               "Content-Type": "application/json"}
     payload = json.dumps({"command": command})
     response = ''
     try:
@@ -433,7 +445,6 @@ async def sendcmd(server_name: str, command: str) -> bool:
         log.error("Unable to send command to Pterodactyl. Error:" + str(err))
         log.error(response.text)
         return False
-
 
 
 #
@@ -453,14 +464,18 @@ async def get_permlvl(user, class_type=True) -> -1 | 0 | 1 | 2 | 3 | 4 | 5:
     return result[1]
 
 
-async def checkperm(ctx, level, isslash: bool=True) -> bool:
+async def checkperm(ctx, level, isslash: bool = True) -> bool:
     currentlvl = await get_permlvl(ctx.author, True)
     log.debug(f"checkperm: current-{currentlvl}, req-{level}")
     if int(currentlvl) < int(level):
         if isslash:
-            await ctx.respond(f"You don't have the required permissions to use this command. You have permission level `{currentlvl}`, but required level is `{level}`!", ephemeral=True)
+            await ctx.respond(
+                f"You don't have the required permissions to use this command. You have permission level `{currentlvl}`, but required level is `{level}`!",
+                ephemeral=True)
         else:
-            await ctx.reply(f"You don't have the required permissions to use this command. You have permission level `{currentlvl}`, but required level is `{level}`!", delete_after=10)
+            await ctx.reply(
+                f"You don't have the required permissions to use this command. You have permission level `{currentlvl}`, but required level is `{level}`!",
+                delete_after=10)
         return True
     else:
         return False
@@ -472,5 +487,6 @@ class DeleteButton(discord.ui.View):
         self.msg = msg
 
     @discord.ui.button(label="Delete", style=discord.ButtonStyle.red)
-    async def button_callback(self, button, interaction): # I have no idea why there are 2 unused variables, removing them breaks the code
+    async def button_callback(self, button,
+                              interaction):  # I have no idea why there are 2 unused variables, removing them breaks the code
         await self.msg.delete()
