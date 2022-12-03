@@ -60,8 +60,10 @@ $ pip3 install -r requirements.txt
 ```shell
   $ python bot.py
   ```
-There you go, your bot should now be running, 
-11. Now, to add your bot go to `OAuth2` ⟶ `URL Generator`. There, Tick the `Bot` and `applications.commands` checkboxes.
+There you go, your bot should now be running,   
+
+11. Now, to add your bot go to `OAuth2` ⟶ `URL Generator`. There, Tick the `Bot` and `applications.commands` checkboxes.  
+
 12. Now copy the URL generated and use it to add the bot to your server
 
 ```
@@ -109,8 +111,8 @@ There will be no support, to what ever you try to add on your own to the bot, Yo
 If you have any issue, find a bug within my code or just want to talk, You can contact me on my Discord or Instagram  
 
 Discord - `Raj Dave#3215`  
-[Website](https://raj.moonball.io) |
-[Instagram](https://www.instagram.com/raj_clicks25/) |
-[Reddit](https://www.reddit.com/user/itz_raj69_/) |
-[Github](https://github.com/rajdave69) 
+[Website](https://rajtech.me/) |
+[Instagram](https://rajtech.me/r/instagram/) |
+[Reddit](https://rajtech.me/r/reddit/) |
+[Github](https://rajtech.me/r/github/) 
 
